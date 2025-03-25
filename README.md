@@ -1,66 +1,75 @@
 [![Build EMS FW](https://github.com/Sgw32/ems-esp-fw/actions/workflows/build_main.yml/badge.svg)](https://github.com/Sgw32/ems-esp-fw/actions/workflows/build_main.yml)
+# **EMS Box Firmware for ESP32-S3**  
 
-# EMS FW
+## **Project Overview**  
+This project is the firmware for the **EMS Box**, a muscle stimulation device based on the **ESP32-S3** microcontroller. The firmware manages hardware components, processes user interactions, and transmits data via Bluetooth.  
 
-[esp_lcd](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/lcd.html) supports I2C interfaced OLED LCD, whose color depth is usually 1bpp.
+## **Features**  
+✅ Capacitive touch button for power control  
+✅ OLED display (SSD1306, 128x64, I2C) 
+✅ Pulse sensor **MAX30100** for heart rate measurement  
+✅ Bluetooth Low Energy (BLE) data transmission  
+✅ State Machine for structured device control  
+✅ Power management with **PWR_LATCH** mechanism  
+✅ Fixed 20 ms execution loop for stable operation  
 
-This example shows how to make use of the SSD1306 panel driver from `esp_lcd` component to facilitate the porting of LVGL library. In the end, example will display a scrolling text on the OLED screen. For more information about porting the LVGL library, you can also refer to another [lvgl porting example](../i80_controller/README.md).
+---
 
-## How to use the example
+## **Hardware Components**  
+| Component           | Interface  | GPIOs Used        | Description |
+|--------------------|-----------|------------------|-------------|
+| **ESP32-S3**       | -         | -                | Microcontroller |
+| **Capacitive Button (TTP223B)** | Digital Input | GPIO34 | Toggles power |
+| **PWR_LATCH Signal** | Digital Output | GPIO46 | Controls power state |
+| **OLED Display (SSD1306)** | I2C | GPIO10 (SDA), GPIO11 (SCL) | UI display |
+| **Pulse Sensor (MAX30100)** | I2C | GPIO10 (SDA), GPIO11 (SCL) | Heart rate measurement |
+| **Bluetooth LE** | BLE | - | Wireless data transmission |
 
-### Hardware Required
+---
 
-* An ESP development board
-* An SSD1306 OLED LCD, with I2C interface
-* An USB cable for power supply and programming
+## **Software Architecture**  
+The project follows a modular design, with the following key components:  
 
-### Hardware Connection
+### **1️⃣ State Machine (`device_sm.c/h`)**  
+Handles the device's operation states:  
+- `OFF` → Waiting for button press  
+- `BOOT` → Initializing display & peripherals  
+- `IDLE` → Waiting for user input  
+- `SHUTDOWN` → Powering off the device  
 
-The connection between ESP Board and the LCD is as follows:
+### **2️⃣ Display Handling (`display.c/h`)**  
+- Initializes **SSD1306** OLED display  
+- Displays messages and real-time data  
 
-```text
-      ESP Board                       OLED LCD (I2C)
-+------------------+              +-------------------+
-|               GND+--------------+GND                |
-|                  |              |                   |
-|               3V3+--------------+VCC                |
-|                  |              |                   |
-|               SDA+--------------+SDA                |
-|                  |              |                   |
-|               SCL+--------------+SCL                |
-+------------------+              +-------------------+
-```
+### **3️⃣ Button Handling (`button.c/h`)**  
+- Configures **capacitive button**  
+- Detects touch input and triggers state transitions  
 
-The GPIO number used by this example can be changed in [lvgl_example_main.c](main/i2c_oled_example_main.c). Please pay attention to the I2C hardware device address as well, you should refer to your module's spec and schematic to determine that address.
+### **4️⃣ Pulse Sensor (`pulse_sensor.c/h`)**  
+- Interfaces with **MAX30100** over **I2C**  
+- Reads and processes heart rate data  
 
-### Build and Flash
+### **5️⃣ Bluetooth LE (`ble_service.c/h`)**  
+- Implements **BLE GATT service**  
+- Sends heart rate data to external devices  
 
-Run `idf.py -p PORT build flash monitor` to build, flash and monitor the project. A scrolling text will show up on the LCD as expected.
+---
 
-The first time you run `idf.py` for the example will cost extra time as the build system needs to address the component dependencies and downloads the missing components from registry into `managed_components` folder.
+## **Build & Flash Instructions**  
+### **1️⃣ Prerequisites**
+- **ESP-IDF** installed (`v5.x` recommended)
+- **ESP32-S3** development board  
 
-(To exit the serial monitor, type ``Ctrl-]``.)
-
-See the [Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html) for full steps to configure and use ESP-IDF to build projects.
-
-### Example Output
-
+### **2️⃣ Build the Project**
 ```bash
-...
-I (308) main_task: Started on CPU0
-I (318) main_task: Calling app_main()
-I (318) example: Initialize I2C bus
-I (318) gpio: GPIO[3]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
-I (328) gpio: GPIO[4]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
-I (338) example: Install panel IO
-I (338) example: Install SSD1306 panel driver
-I (448) example: Initialize LVGL
-I (448) LVGL: Starting LVGL task
-I (448) example: Display LVGL Scroll Text
-I (448) main_task: Returned from app_main()
-...
+idf.py set-target esp32s3
+idf.py build
 ```
-
-## Troubleshooting
-
-For any technical queries, please open an [issue](https://github.com/espressif/esp-idf/issues) on GitHub. We will get back to you soon.
+### **3️⃣ Flash to ESP32-S3**
+```bash
+idf.py flash monitor
+```
+### **4️⃣ Monitor Serial Output**
+```bash
+idf.py monitor
+```
