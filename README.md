@@ -37,19 +37,19 @@ Handles the device's operation states:
 - `IDLE` → Waiting for user input  
 - `SHUTDOWN` → Powering off the device  
 
-### **2️⃣ Display Handling (`display.c/h`)**  
+### **2️⃣ Display Handling (`ssd1306_display.c/h`)**  
 - Initializes **SSD1306** OLED display  
 - Displays messages and real-time data  
 
-### **3️⃣ Button Handling (`button.c/h`)**  
+### **3️⃣ Button Handling (`pwr_button.c/h`)**  
 - Configures **capacitive button**  
 - Detects touch input and triggers state transitions  
 
-### **4️⃣ Pulse Sensor (`pulse_sensor.c/h`)**  
+### **4️⃣ Pulse Sensor (`hrm.c/h`)**  
 - Interfaces with **MAX30100** over **I2C**  
 - Reads and processes heart rate data  
 
-### **5️⃣ Bluetooth LE (`ble_service.c/h`)**  
+### **5️⃣ Bluetooth LE (`gatt_svr.c/h`)**  
 - Implements **BLE GATT service**  
 - Sends heart rate data to external devices  
 
