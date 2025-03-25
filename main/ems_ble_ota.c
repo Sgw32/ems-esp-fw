@@ -446,7 +446,7 @@ static void ota_task_init(void)
 
 void init_ota(void)
 {
-    esp_err_t ret;
+    //esp_err_t ret;
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
 
     if (!ble_ota_ringbuf_init(OTA_RINGBUF_SIZE)) {
