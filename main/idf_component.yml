@@ -1,6 +1,5 @@
 dependencies:
+  espressif/ble_ota: "^0.1.14"
   espressif/ble_conn_mgr: "=*"
-  espressif/ble_hrp: "=*"
-  lvgl/lvgl: "~8.3.0"
-  esp_lcd_sh1107: "^1"
-  esp_lvgl_port: "^1"
+  espressif/esp_delta_ota: "^1.1.0"
+  espressif/esp_encrypted_img: "^2.0.1"

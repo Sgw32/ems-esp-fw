@@ -1,0 +1,57 @@
+menu "SSD1306 Configuration"
+
+	config GPIO_RANGE_MAX
+		int
+		default 33 if IDF_TARGET_ESP32
+		default 46 if IDF_TARGET_ESP32S2
+		default 48 if IDF_TARGET_ESP32S3
+		default 18 if IDF_TARGET_ESP32C2
+		default 19 if IDF_TARGET_ESP32C3
+		default 30 if IDF_TARGET_ESP32C6
+		default 27 if IDF_TARGET_ESP32H2
+
+	choice INTERFACE
+		prompt "Interface"
+		default I2C_INTERFACE
+		help
+			Select Interface.
+		config I2C_INTERFACE
+			bool "I2C Interface"
+			help
+				I2C Interface.
+		config SPI_INTERFACE
+			bool "SPI Interface"
+			help
+				SPI Interface.
+	endchoice
+
+	choice PANEL
+		prompt "Panel Type"
+		default SSD1306_128x64
+		help
+			Select Panel Type.
+		config SSD1306_128x32
+			bool "128x32 Panel"
+			help
+				Panel is 128x32.
+		config SSD1306_128x64
+			bool "128x64 Panel"
+			help
+				Panel is 128x64.
+	endchoice
+
+	config OFFSETX
+		int "GRAM X OFFSET"
+		range 0 99
+		default 0
+		help
+			When your TFT have offset(X), set it.
+
+	config FLIP
+		bool "Flip upside down"
+		default false
+		help
+			Flip upside down.
+
+endmenu
+
