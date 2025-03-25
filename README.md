@@ -1,7 +1,6 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C6 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | -------- | -------- | -------- |
+[![Build EMS FW](https://github.com/Sgw32/ems-esp-fw/actions/workflows/build_main.yml/badge.svg)](https://github.com/Sgw32/ems-esp-fw/actions/workflows/build_main.yml)
 
-# I2C OLED example
+# EMS FW
 
 [esp_lcd](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/lcd.html) supports I2C interfaced OLED LCD, whose color depth is usually 1bpp.
 
