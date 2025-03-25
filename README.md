@@ -1,8 +1,8 @@
 [![Build EMS FW](https://github.com/Sgw32/ems-esp-fw/actions/workflows/build_main.yml/badge.svg)](https://github.com/Sgw32/ems-esp-fw/actions/workflows/build_main.yml)
-# **EMS Box Firmware for ESP32-S3**  
+# **EMS Box Firmware for ESP32-S3FH4R2**  
 
 ## **Project Overview**  
-This project is the firmware for the **EMS Box**, a muscle stimulation device based on the **ESP32-S3** microcontroller. The firmware manages hardware components, processes user interactions, and transmits data via Bluetooth.  
+This project is the firmware for the **EMS Box**, a muscle stimulation device based on the **ESP32-S3FH4R2** microcontroller. The firmware manages hardware components, processes user interactions, and transmits data via Bluetooth.  
 
 ## **Features**  
 ✅ Capacitive touch button for power control  
@@ -18,7 +18,7 @@ This project is the firmware for the **EMS Box**, a muscle stimulation device ba
 ## **Hardware Components**  
 | Component           | Interface  | GPIOs Used        | Description |
 |--------------------|-----------|------------------|-------------|
-| **ESP32-S3**       | -         | -                | Microcontroller |
+| **ESP32-S3FH4R2**       | -         | -                | Microcontroller |
 | **Capacitive Button (TTP223B)** | Digital Input | GPIO34 | Toggles power |
 | **PWR_LATCH Signal** | Digital Output | GPIO46 | Controls power state |
 | **OLED Display (SSD1306)** | I2C | GPIO10 (SDA), GPIO11 (SCL) | UI display |
@@ -58,14 +58,14 @@ Handles the device's operation states:
 ## **Build & Flash Instructions**  
 ### **1️⃣ Prerequisites**
 - **ESP-IDF** installed (`v5.x` recommended)
-- **ESP32-S3** development board  
+- **ESP32-S3FH4R2** development/device board  
 
 ### **2️⃣ Build the Project**
 ```bash
 idf.py set-target esp32s3
 idf.py build
 ```
-### **3️⃣ Flash to ESP32-S3**
+### **3️⃣ Flash to ESP32-S3FH4R2**
 ```bash
 idf.py flash monitor
 ```
