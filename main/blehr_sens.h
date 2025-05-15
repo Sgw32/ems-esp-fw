@@ -17,34 +17,64 @@
  * under the License.
  */
 
-#ifndef H_BLEHR_SENSOR_
-#define H_BLEHR_SENSOR_
-
-#include "nimble/ble.h"
-#include "modlog/modlog.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/* Heart-rate configuration */
-#define GATT_HRS_UUID                           0x180D
-#define GATT_HRS_MEASUREMENT_UUID               0x2A37
-#define GATT_HRS_BODY_SENSOR_LOC_UUID           0x2A38
-#define GATT_DEVICE_INFO_UUID                   0x180A
-#define GATT_MANUFACTURER_NAME_UUID             0x2A29
-#define GATT_MODEL_NUMBER_UUID                  0x2A24
-
-extern uint16_t hrs_hrm_handle;
-
-struct ble_hs_cfg;
-struct ble_gatt_register_ctxt;
-
-void ems_gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg);
-int ems_gatt_svr_init(void);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+ #ifndef H_BLEHR_SENSOR_
+ #define H_BLEHR_SENSOR_
+ 
+ #include "nimble/ble.h"
+ #include "modlog/modlog.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+ 
+ /** @file
+  *  @brief BLE Heart Rate Sensor Service Header
+  *
+  *  This file contains definitions for the BLE Heart Rate Sensor (HRS) service,
+  *  including characteristic UUIDs and function declarations.
+  */
+ 
+ /** @name Heart Rate Service UUIDs
+  *  UUID definitions for the Heart Rate Service and its characteristics.
+  *  @{
+  */
+ #define GATT_HRS_UUID                           0x180D  /**< Heart Rate Service UUID */
+ #define GATT_HRS_MEASUREMENT_UUID               0x2A37  /**< Heart Rate Measurement UUID */
+ #define GATT_HRS_BODY_SENSOR_LOC_UUID           0x2A38  /**< Body Sensor Location UUID */
+ #define GATT_DEVICE_INFO_UUID                   0x180A  /**< Device Information Service UUID */
+ #define GATT_MANUFACTURER_NAME_UUID             0x2A29  /**< Manufacturer Name UUID */
+ #define GATT_MODEL_NUMBER_UUID                  0x2A24  /**< Model Number UUID */
+ /** @} */
+ 
+ /** @brief Handle for the Heart Rate Measurement characteristic */
+ extern uint16_t hrs_hrm_handle;
+ 
+ /** @brief Forward declarations for BLE stack structures */
+ struct ble_hs_cfg;
+ struct ble_gatt_register_ctxt;
+ 
+ /**
+  * @brief GATT server registration callback.
+  *
+  * This function is called when a GATT attribute is registered.
+  *
+  * @param ctxt Pointer to the registration context.
+  * @param arg User-defined argument.
+  */
+ void ems_gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg);
+ 
+ /**
+  * @brief Initializes the GATT server.
+  *
+  * This function sets up the GATT attributes and services for the Heart Rate Sensor.
+  *
+  * @return 0 on success, or an error code on failure.
+  */
+ int ems_gatt_svr_init(void);
+ 
+ #ifdef __cplusplus
+ }
+ #endif
+ 
+ #endif /* H_BLEHR_SENSOR_ */
+ 
