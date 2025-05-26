@@ -101,6 +101,7 @@ typedef struct {
 	PAGE_t _page[8];
 	bool _flip;
 	i2c_port_t _i2c_num;
+	bool init_error;
 } SSD1306_t;
 
 #ifdef __cplusplus

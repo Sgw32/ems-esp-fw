@@ -71,6 +71,8 @@
   * @return 0 on success, or an error code on failure.
   */
  int ems_gatt_svr_init(void);
+
+ uint8_t ems_get_power_en(void);
  
  #ifdef __cplusplus
  }

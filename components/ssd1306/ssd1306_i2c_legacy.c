@@ -118,8 +118,10 @@ void ssd1306_i2c_init(SSD1306_t * dev, int width, int height) {
 	esp_err_t res = i2c_master_cmd_begin(dev->_i2c_num, cmd, I2C_TICKS_TO_WAIT);
 	if (res == ESP_OK) {
 		ESP_LOGI(TAG, "OLED configured successfully");
+		dev->init_error = false;
 	} else {
 		ESP_LOGE(TAG, "OLED configuration failed. code: 0x%.2X", res);
+		dev->init_error = true;
 	}
 	i2c_cmd_link_delete(cmd);
 }

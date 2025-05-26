@@ -24,11 +24,22 @@
 #include "host/ble_uuid.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
+
 #include "blehr_sens.h"
 
 static const char *manuf_name = "Future Fitness EMS";
 static const char *model_num = "EMS ESP32";
 uint16_t hrs_hrm_handle;
+
+static uint8_t ems_power = 1;  // 0-100% power level
+// Add the implementation near the bottom of the file, before ems_gatt_svr_init
+uint8_t ems_get_power_en(void)
+{
+    return ems_power;
+}
+
+#define EMS_POWER_SERVICE_UUID        0xFF00  // Custom service UUID
+#define EMS_POWER_CONTROL_UUID       0xFF01  // Custom characteristic UUID
 
 static int
 gatt_svr_chr_access_heart_rate(uint16_t conn_handle, uint16_t attr_handle,
@@ -37,6 +48,10 @@ gatt_svr_chr_access_heart_rate(uint16_t conn_handle, uint16_t attr_handle,
 static int
 gatt_svr_chr_access_device_info(uint16_t conn_handle, uint16_t attr_handle,
                                 struct ble_gatt_access_ctxt *ctxt, void *arg);
+
+static int
+gatt_svr_chr_access_ems_power(uint16_t conn_handle, uint16_t attr_handle,
+                             struct ble_gatt_access_ctxt *ctxt, void *arg);
 
 static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
     {
@@ -76,6 +91,22 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
                 .uuid = BLE_UUID16_DECLARE(GATT_MODEL_NUMBER_UUID),
                 .access_cb = gatt_svr_chr_access_device_info,
                 .flags = BLE_GATT_CHR_F_READ,
+            }, {
+                0, /* No more characteristics in this service */
+            },
+        }
+    },
+
+    {
+        /* Service: EMS Power Control */
+        .type = BLE_GATT_SVC_TYPE_PRIMARY,
+        .uuid = BLE_UUID16_DECLARE(EMS_POWER_SERVICE_UUID),
+        .characteristics = (struct ble_gatt_chr_def[])
+        { {
+                /* Characteristic: Power Level Control */
+                .uuid = BLE_UUID16_DECLARE(EMS_POWER_CONTROL_UUID),
+                .access_cb = gatt_svr_chr_access_ems_power,
+                .flags = BLE_GATT_CHR_F_WRITE,
             }, {
                 0, /* No more characteristics in this service */
             },
@@ -128,6 +159,32 @@ gatt_svr_chr_access_device_info(uint16_t conn_handle, uint16_t attr_handle,
     }
 
     assert(0);
+    return BLE_ATT_ERR_UNLIKELY;
+}
+
+static int
+gatt_svr_chr_access_ems_power(uint16_t conn_handle, uint16_t attr_handle,
+                             struct ble_gatt_access_ctxt *ctxt, void *arg)
+{
+    uint16_t uuid;
+    int rc;
+
+    uuid = ble_uuid_u16(ctxt->chr->uuid);
+
+    if (uuid == EMS_POWER_CONTROL_UUID) {
+        if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
+            rc = os_mbuf_copydata(ctxt->om, 0, sizeof(ems_power), &ems_power);
+            if (rc != 0) {
+                return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+            }
+            // Validate range
+            if (ems_power > 1) {
+                ems_power = 1;
+            }
+            return 0;
+        }
+    }
+
     return BLE_ATT_ERR_UNLIKELY;
 }
 

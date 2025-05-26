@@ -92,13 +92,19 @@ void setup_ui()
 
 	ESP_LOGI(TAG, "Panel is 128x64");
 	ssd1306_init(&dev, 128, 64);
-
+    if (dev.init_error) {
+        ESP_LOGE(TAG, "SSD1306 init error");
+        return;
+    }
 	ssd1306_clear_screen(&dev, false);
 	ssd1306_contrast(&dev, 0xff);
 }
 
 static inline void update_boot()
 {
+    if (dev.init_error) {
+        return;
+    }
     if (cycles_cnt==0)
     {
         ssd1306_display_text(&dev, 1, "  ems test app  ", 17, false);
@@ -118,6 +124,9 @@ static inline void update_boot()
 
 static inline void update_idle(uint16_t heart_rate, uint8_t hrm_active)
 {
+    if (dev.init_error) {
+        return;
+    }
     ssd1306_display_text(&dev, 1, "  ems test app  ", 17, false);
     if (!hrm_active)
     {
@@ -138,6 +147,9 @@ static inline void update_idle(uint16_t heart_rate, uint8_t hrm_active)
 
 void update_ui(device_state_t state, uint16_t heart_rate, uint8_t hrm_active)
 {
+    if (dev.init_error) {
+        return;
+    }
     switch (state) {
         case DEVICE_STATE_OFF:
             cycles_cnt = 0;
