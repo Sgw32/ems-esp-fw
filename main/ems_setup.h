@@ -29,13 +29,63 @@ typedef enum {
 #define PIN_PWR_LATCH     GPIO_NUM_36  /**< Power latch GPIO pin */
 #define PIN_SDA           GPIO_NUM_10  /**< I2C SDA pin */
 #define PIN_SCL           GPIO_NUM_11  /**< I2C SCL pin */
+
+// Define F1/F2 GPIOs and DAC channels
+#define F1_GPIO GPIO_NUM_7
+#define F2_GPIO GPIO_NUM_9
+
+// --- GPIO pin assignments (adjust according to your board layout) ---
+// #define LED_B_GPIO          GPIO_NUM_2
+// #define LED_R_GPIO          GPIO_NUM_4
+// #define CHRG_ON_GPIO        GPIO_NUM_18
+// #define CHRG_ILIM_GPIO      GPIO_NUM_19
+// #define CHRG_IN_GPIO        GPIO_NUM_23
+// #define BAL_L_GPIO          GPIO_NUM_25
+// #define BAL_H_GPIO          GPIO_NUM_26
+#define CHRG_OUT_GPIO       GPIO_NUM_35
+// #define CHGR_COMPLITE_GPIO  GPIO_NUM_22
+
+
+#define GPIO_PWM        8
+#define GPIO_35V_ON     12 
+#define GPIO_WCLK       47
+
 /** @} */
 #else
-#define PIN_START_BUTTON  GPIO_NUM_34  /**< Start button GPIO pin */
-#define PIN_PWR_LATCH     GPIO_NUM_46  /**< Power latch GPIO pin */
+/** @name Pin Definitions
+ *  GPIO pin assignments for various components.
+ *  @{
+ */
+#define PIN_START_BUTTON  GPIO_NUM_41  /**< Start button GPIO pin */
+#define PIN_PWR_LATCH     GPIO_NUM_38 /**< Power latch GPIO pin */
 #define PIN_SDA           GPIO_NUM_10  /**< I2C SDA pin */
 #define PIN_SCL           GPIO_NUM_11  /**< I2C SCL pin */
+
+// Define F1/F2 GPIOs and DAC channels
+#define F1_GPIO GPIO_NUM_7
+#define F2_GPIO GPIO_NUM_9
+
+// --- GPIO pin assignments (adjust according to your board layout) ---
+// #define LED_B_GPIO          GPIO_NUM_2
+// #define LED_R_GPIO          GPIO_NUM_4
+// #define CHRG_ON_GPIO        GPIO_NUM_18
+// #define CHRG_ILIM_GPIO      GPIO_NUM_19
+// #define CHRG_IN_GPIO        GPIO_NUM_23
+// #define BAL_L_GPIO          GPIO_NUM_25
+// #define BAL_H_GPIO          GPIO_NUM_26
+#define CHRG_OUT_GPIO       GPIO_NUM_35
+// #define CHGR_COMPLITE_GPIO  GPIO_NUM_22
+
+#define GPIO_PWM        8
+#define GPIO_35V_ON     12 
+#define GPIO_WCLK       47
+/** @} */
 #endif
+
+
+/** @name EMS Pulse timer */
+#define EMS_TIMER_GROUP TIMER_GROUP_0
+#define EMS_TIMER       TIMER_0
 
 /** @name I2C Configuration
  *  Definitions for I2C communication.

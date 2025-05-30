@@ -22,11 +22,10 @@
 #include "device_sm.h"
 #include "ems_ble_ota.h"
 
-static const char *TAG = "EMS main";
+#include "ems_common_driver/ems.h"
+#include "ems_common_driver/ems_common/ems_config.h"
 
-#define GPIO_PWM        8
-#define GPIO_35V_ON     12 
-#define GPIO_WCLK       47
+static const char *TAG = "EMS main";
 
 #define WCLK_FREQ_HZ    10000
 #define WCLK_PERIOD_US  (1000000/WCLK_FREQ_HZ)  // 200us for 5kHz
@@ -100,14 +99,50 @@ void app_main(void)
       
     init_hrm();
     configure_high_voltage(1);
+
+
+
     //init_ota();
     ESP_LOGI(TAG, "Install SSD1306 panel driver");
     
     ESP_LOGI(TAG, "Pre-setup UI");
     setup_ui();
 
+    ESP_LOGI(TAG, "Initialize EMS common driver");
+    ems_timer_init();
+    pulseConfig();
+
+    // #define PULSE_DEPTH_MIN_US              20
+    // #define PULSE_DEPTH_MAX_US              250
+
+    // #define PULSE_FREQ_MIN                  1
+    // #define PULSE_FREQ_MAX                  100
+
+    // #define STIMUL_RELAX_TIME_MIN_S         0
+    // #define STIMUL_RELAX_TIME_MAX_S         60
+
+    // #define STIMUL_RELAX_RISE_FAIL_MIN_MS   0
+    // #define STIMUL_RELAX_RISE_FAIL_MAX_MS   5000
+
+    // #define RELAX_PULSE_OFF                 0
+    // #define RELAX_PULSE_ON                  1
+    emsCfgSet(CFG_STIMUL_PULSE, 100);
+    emsCfgSet(CFG_STIMUL_FREQ, 50);
+    emsCfgSet(CFG_STIMUL_TIME, 5);
+    emsCfgSet(CFG_STIMUL_RISE, 1000);
+    emsCfgSet(CFG_STIMUL_FAIL, 1000);
+
+    emsCfgSet(CFG_RELAX_PULSE, 100);
+    emsCfgSet(CFG_RELAX_FREQ, 50);
+    emsCfgSet(CFG_RELAX_TIME, 5);
+    emsCfgSet(CFG_RELAX_RISE, 1000);
+    emsCfgSet(CFG_RELAX_FAIL, 1000);
+    
+    ESP_LOGI(TAG, "Start EMS common driver");
+    emsStart();
+
     // Main loop
-    TickType_t last_time = xTaskGetTickCount(); // Запоминаем текущее время
+    TickType_t last_time = xTaskGetTickCount(); // Save current time for fixed SM loop
     while (1) {
         process_device_sm();  //Process SM
         configure_high_voltage(ems_get_power_en());
