@@ -153,13 +153,13 @@ void app_main(void)
     // #define RELAX_PULSE_OFF                 0
     // #define RELAX_PULSE_ON                  1
     emsCfgSet(CFG_STIMUL_PULSE, 100);
-    emsCfgSet(CFG_STIMUL_FREQ, 50);
+    emsCfgSet(CFG_STIMUL_FREQ, 9);
     emsCfgSet(CFG_STIMUL_TIME, 5);
     emsCfgSet(CFG_STIMUL_RISE, 1000);
     emsCfgSet(CFG_STIMUL_FAIL, 1000);
 
     emsCfgSet(CFG_RELAX_PULSE, 100);
-    emsCfgSet(CFG_RELAX_FREQ, 50);
+    emsCfgSet(CFG_RELAX_FREQ, 9);
     emsCfgSet(CFG_RELAX_TIME, 5);
     emsCfgSet(CFG_RELAX_RISE, 1000);
     emsCfgSet(CFG_RELAX_FAIL, 1000);
