@@ -5,10 +5,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repo
+    - name: Checkout repo with token
       uses: actions/checkout@v3
       with:
-        submodules: 'recursive'
+        submodules: false  # мы инициализируем вручную
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Patch .gitmodules for HTTPS + token
+      run: |
+        sed -i "s|git@github.com:|https://${{ secrets.GITHUB_TOKEN }}@github.com/|" .gitmodules
+        git submodule sync --recursive
+        git submodule update --init --recursive
 
     - name: Set environment variables
       id: vars
