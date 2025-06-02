@@ -5,15 +5,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repo with token
+    - name: Checkout repo without submodules
       uses: actions/checkout@v3
       with:
-        submodules: false  # мы инициализируем вручную
-        token: ${{ secrets.GITHUB_TOKEN }}
+        submodules: false
+        fetch-depth: 1
 
-    - name: Patch .gitmodules for HTTPS + token
+    - name: Inject token for private submodule access
       run: |
-        sed -i "s|git@github.com:|https://${{ secrets.GITHUB_TOKEN }}@github.com/|" .gitmodules
+        git config --global url."https://${{ secrets.GITHUB_TOKEN }}:x-oauth-basic@github.com/".insteadOf git@github.com:
         git submodule sync --recursive
         git submodule update --init --recursive
 
