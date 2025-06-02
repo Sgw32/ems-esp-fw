@@ -24,11 +24,14 @@
 
 #include "ems_common_driver/ems.h"
 #include "ems_common_driver/ems_common/ems_config.h"
+#include "max5815.h"
+#include "max5815_sine.h"
 
 static const char *TAG = "EMS main";
 
 #define WCLK_FREQ_HZ    10000
 #define WCLK_PERIOD_US  (1000000/WCLK_FREQ_HZ)  // 200us for 5kHz
+#define LOG_INTERVAL_MS 1000  // Log every 1 second
 
 static esp_timer_handle_t wclk_timer;
 static bool wclk_state = false;
@@ -83,6 +86,22 @@ static void configure_high_voltage(bool enable) {
     }
 }
 
+static max5815_dev_t dac_dev = {
+    .i2c_port = I2C_NUM_0,  // Use your configured I2C port
+    .i2c_addr = MAX5815_I2C_ADDR_DEFAULT
+};
+
+static void init_control_gpios(void) {
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << GPIO_DECREASE) | (1ULL << GPIO_INCREASE),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&io_conf);
+}
+ 
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
@@ -94,6 +113,13 @@ void app_main(void)
 
     i2c_init();
     i2c_scan();
+    ESP_LOGI(TAG, "I2C initialized");
+    init_control_gpios();
+    // Initialize MAX5815 DAC
+    max5815_init(&dac_dev, dac_dev.i2c_port, dac_dev.i2c_addr);
+    // max5815_sine_init(&dac_dev);
+    // max5815_sine_start();
+
     pwr_button_init();
     device_sm_init(); 
       
@@ -142,10 +168,43 @@ void app_main(void)
     emsStart();
 
     // Main loop
-    TickType_t last_time = xTaskGetTickCount(); // Save current time for fixed SM loop
+    static uint16_t current_dac_value = 2048;  // Start at mid-range (2048 for 12-bit DAC)
+    TickType_t last_time = xTaskGetTickCount();
+    TickType_t last_log_time = last_time;  // Add this line
+
     while (1) {
-        process_device_sm();  //Process SM
+        process_device_sm();
         configure_high_voltage(ems_get_power_en());
+
+        // Read GPIO states (active low due to pull-up)
+        bool decrease = !gpio_get_level(GPIO_DECREASE);
+        bool increase = !gpio_get_level(GPIO_INCREASE);
+
+        // Update DAC value based on button states
+        if (increase && current_dac_value < DAC_MAX_VALUE) {
+            current_dac_value = (current_dac_value + DAC_VALUE_STEP <= DAC_MAX_VALUE) ? 
+                                current_dac_value + DAC_VALUE_STEP : DAC_MAX_VALUE;
+        }
+        if (decrease && current_dac_value > DAC_MIN_VALUE) {
+            current_dac_value = (current_dac_value > DAC_VALUE_STEP) ? 
+                                current_dac_value - DAC_VALUE_STEP : DAC_MIN_VALUE;
+        }
+
+        // Update all DAC channels if any change occurred
+        if (increase || decrease) {
+            for (max5815_channel_t channel = MAX5815_CHANNEL_A; 
+                 channel <= MAX5815_CHANNEL_D; 
+                 channel++) {
+                max5815_set_channel(&dac_dev, channel, current_dac_value);
+            }
+        }
+
+        // Log value once per second
+        if ((xTaskGetTickCount() - last_log_time) >= pdMS_TO_TICKS(LOG_INTERVAL_MS)) {
+            ESP_LOGI(TAG, "Current DAC value: %d", current_dac_value);
+            last_log_time = xTaskGetTickCount();
+        }
+
         // Ensure 20 ms loop
         vTaskDelayUntil(&last_time, pdMS_TO_TICKS(MAIN_TASK_LOOP_TIME_MS));
     }

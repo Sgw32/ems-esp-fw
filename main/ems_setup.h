@@ -82,6 +82,13 @@ typedef enum {
 /** @} */
 #endif
 
+// #define GPIO_DECREASE GPIO_NUM_20
+// #define GPIO_INCREASE GPIO_NUM_21
+#define GPIO_DECREASE GPIO_NUM_43
+#define GPIO_INCREASE GPIO_NUM_44
+#define DAC_VALUE_STEP    32          // Step size for increment/decrement
+#define DAC_MIN_VALUE     0
+#define DAC_MAX_VALUE     4095        // 12-bit DAC (2^12 - 1)
 
 /** @name EMS Pulse timer */
 #define EMS_TIMER_GROUP TIMER_GROUP_0
