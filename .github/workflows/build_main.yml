@@ -7,22 +7,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout main repo (no SSH, use token)
+      uses: actions/checkout@v3
+      with:
+        submodules: false
+        fetch-depth: 1
+
     - name: Set up SSH for private submodules
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.GH_SSH_KEY_FOR_FEDOR }}" > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
         ssh-keyscan github.com >> ~/.ssh/known_hosts
-    - name: Test SSH access to submodule repo
+        git config --global url."git@github.com:".insteadOf "https://github.com/"
+
+    - name: Manually checkout submodules over SSH
       run: |
-        ssh -T git@github.com || true
-        GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" git ls-remote git@github.com:Future-Fitness-Club/ems_common_driver.git
-    - name: Checkout repo with submodules using SSH key
-      uses: actions/checkout@v3
-      with:
-        submodules: recursive
-        fetch-depth: 1
-        ssh-key: ${{ secrets.GH_SSH_KEY_FOR_FEDOR }} 
+        git submodule sync --recursive
+        git submodule update --init --recursive
 
     - name: Set environment variables
       id: vars
