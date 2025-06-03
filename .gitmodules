@@ -1,6 +1,6 @@
 [submodule "components/esp32-max30100"]
 	path = components/esp32-max30100
-	url = https://github.com/Sgw32/esp32-max30100.git
+	url = git@github.com:Sgw32/esp32-max30100.git
 [submodule "main/ems_common_driver"]
 	path = main/ems_common_driver
 	url = git@github.com:Future-Fitness-Club/ems_common_driver.git
