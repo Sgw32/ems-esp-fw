@@ -40,7 +40,7 @@ jobs:
 
     - name: Archive raw source folder (before build)
       run: |
-        zip -r "${ARCHIVE_NAME}" $(basename $GITHUB_REPOSITORY)
+        zip -r "${ARCHIVE_NAME}" . -x ".git/*"
 
     - name: Upload raw source artifact
       uses: actions/upload-artifact@v4
