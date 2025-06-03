@@ -13,13 +13,13 @@ jobs:
         echo "${{ secrets.GH_SSH_KEY_FOR_FEDOR }}" > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
         ssh-keyscan github.com >> ~/.ssh/known_hosts
-        git config --global url."git@github.com:".insteadOf "https://github.com/"
 
-    - name: Checkout repo with submodules
+    - name: Checkout repo with submodules using SSH key
       uses: actions/checkout@v3
       with:
         submodules: recursive
         fetch-depth: 1
+        ssh-key: ${{ secrets.GH_SSH_KEY_FOR_FEDOR }} 
 
     - name: Set environment variables
       id: vars
