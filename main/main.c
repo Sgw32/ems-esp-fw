@@ -88,7 +88,9 @@ static void configure_high_voltage(bool enable) {
 
 static max5815_dev_t dac_dev = {
     .i2c_port = I2C_NUM_0,  // Use your configured I2C port
-    .i2c_addr = MAX5815_I2C_ADDR_DEFAULT
+    .i2c_addr = MAX5815_I2C_ADDR,
+    .clr_pin = GPIO_DAC_CLR,  
+    .is_initialized = false
 };
 
 static void init_control_gpios(void) {
