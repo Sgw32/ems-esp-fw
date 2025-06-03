@@ -29,10 +29,14 @@ jobs:
     - name: Set environment variables
       id: vars
       run: |
-        echo "REPO_NAME=$(basename $GITHUB_REPOSITORY)" >> $GITHUB_ENV
-        echo "DATE_STR=$(date +%d%m%Y)" >> $GITHUB_ENV
-        echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-        echo "ARCHIVE_NAME=${{ env.REPO_NAME }}_${{ env.DATE_STR }}_${{ env.COMMIT_HASH }}.zip" >> $GITHUB_ENV
+        REPO_NAME=$(basename $GITHUB_REPOSITORY)
+        DATE_STR=$(date +%d%m%Y)
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        ARCHIVE_NAME="${REPO_NAME}_${DATE_STR}_${COMMIT_HASH}.zip"
+        echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
+        echo "DATE_STR=$DATE_STR" >> $GITHUB_ENV
+        echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+        echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
     - name: Archive raw source folder (before build)
       run: |
@@ -44,6 +48,7 @@ jobs:
       with:
         name: ${{ env.ARCHIVE_NAME }}
         path: ../${{ env.ARCHIVE_NAME }}
+        retention-days: 7
 
     - name: esp-idf build
       uses: espressif/esp-idf-ci-action@v1.1.0
