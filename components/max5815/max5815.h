@@ -61,6 +61,13 @@ esp_err_t max5815_shutdown(max5815_dev_t *dev, max5815_channel_t channel);
  */
 esp_err_t max5815_set_clr(max5815_dev_t *dev, bool enabled);
 
+/**
+ * @brief Set internal reference voltage
+ * @param dev Pointer to device handle structure
+ * @return ESP_OK on success, ESP_ERR_NOT_SUPPORTED if not supported
+ */
+esp_err_t max5815_set_internal_ref(max5815_dev_t *dev);
+
 #ifdef __cplusplus
 }
 #endif

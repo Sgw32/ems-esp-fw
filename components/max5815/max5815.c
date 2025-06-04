@@ -3,23 +3,21 @@
 
 static const char *TAG = "MAX5815";
 
-#define MAX5815_CMD_WRITE    0x00
-#define MAX5815_CMD_SHUTDOWN 0x20
+#define MAX5815_CMD_WRITE        0x30  // Write and Load DAC
+#define MAX5815_CMD_SHUTDOWN     0x20
+#define MAX5815_CMD_REF_2V5      0x71
 #define I2C_MASTER_TIMEOUT_MS 1000
 
 static esp_err_t max5815_write_registers(max5815_dev_t *dev, uint8_t cmd, uint8_t msb, uint8_t lsb)
 {
-    uint8_t write_buf[3] = {cmd, msb, lsb};
-    
-    i2c_cmd_handle_t cmd_handle = i2c_cmd_link_create();
-    i2c_master_start(cmd_handle);
-    i2c_master_write_byte(cmd_handle, (dev->i2c_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write(cmd_handle, write_buf, sizeof(write_buf), true);
-    i2c_master_stop(cmd_handle);
-    
-    esp_err_t ret = i2c_master_cmd_begin(dev->i2c_port, cmd_handle, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd_handle);
-    
+    uint8_t buf[3] = { cmd, msb, lsb };
+    i2c_cmd_handle_t handle = i2c_cmd_link_create();
+    i2c_master_start(handle);
+    i2c_master_write_byte(handle, (dev->i2c_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write(handle, buf, sizeof(buf), true);
+    i2c_master_stop(handle);
+    esp_err_t ret = i2c_master_cmd_begin(dev->i2c_port, handle, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+    i2c_cmd_link_delete(handle);
     return ret;
 }
 
@@ -50,9 +48,6 @@ esp_err_t max5815_init(max5815_dev_t *dev, i2c_port_t i2c_port, uint8_t i2c_addr
 
     // Try to detect the device first
     esp_err_t ret = max5815_detect(i2c_port, i2c_addr);
-    if (ret != ESP_OK) {
-        return ret;
-    }
 
     dev->i2c_port = i2c_port;
     dev->i2c_addr = i2c_addr;
@@ -75,30 +70,50 @@ esp_err_t max5815_init(max5815_dev_t *dev, i2c_port_t i2c_port, uint8_t i2c_addr
         }
 
         // Set initial CLR pin state
-        ret = max5815_set_clr(dev, true);
+        ret = max5815_set_clr(dev, true);  // Initial set to true
+        if (ret != ESP_OK) {
+            return ret;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10));  // Add small delay between transitions
+
+        ret = max5815_set_clr(dev, false);  // Set to false
+        if (ret != ESP_OK) {
+            return ret;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10));  // Add small delay between transitions
+
+        ret = max5815_set_clr(dev, true);  // Back to true
         if (ret != ESP_OK) {
             return ret;
         }
     }
 
+    ret = max5815_set_internal_ref(dev);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set internal reference voltage");
+        return ret;
+    }
+
     dev->is_initialized = true;
-    ESP_LOGI(TAG, "MAX5815 initialized successfully");
+    ESP_LOGI(TAG, "MAX5815 initialized");
+
     return ESP_OK;
 }
 
 esp_err_t max5815_set_channel(max5815_dev_t *dev, max5815_channel_t channel, uint16_t value)
 {
-    if (!dev->is_initialized || channel > MAX5815_CHANNEL_D) {
+    if (!dev || !dev->is_initialized || channel > MAX5815_CHANNEL_D) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    // Ensure value is 12-bit
     value &= 0x0FFF;
+    uint8_t cmd = MAX5815_CMD_WRITE | channel;
+    uint8_t msb = value >> 4;
+    uint8_t lsb = (value & 0x0F) << 4;
 
-    return max5815_write_registers(dev,
-                                 MAX5815_CMD_WRITE | (channel << 1),
-                                 (uint8_t)(value >> 4),
-                                 (uint8_t)(value << 4));
+    return max5815_write_registers(dev, cmd, msb, lsb);
 }
 
 esp_err_t max5815_shutdown(max5815_dev_t *dev, max5815_channel_t channel)
@@ -115,10 +130,6 @@ esp_err_t max5815_shutdown(max5815_dev_t *dev, max5815_channel_t channel)
 
 esp_err_t max5815_set_clr(max5815_dev_t *dev, bool enabled)
 {
-    if (!dev->is_initialized) {
-        return ESP_ERR_INVALID_STATE;
-    }
-
     if (dev->clr_pin == MAX5815_CLR_PIN_NONE) {
         return ESP_ERR_NOT_SUPPORTED;
     }
@@ -127,4 +138,10 @@ esp_err_t max5815_set_clr(max5815_dev_t *dev, bool enabled)
     ESP_LOGI(TAG, "CLR pin set to %s", enabled ? "enabled" : "clear");
     
     return ESP_OK;
+}
+
+esp_err_t max5815_set_internal_ref(max5815_dev_t *dev)
+{
+    if (!dev || !dev->is_initialized) return ESP_ERR_INVALID_STATE;
+    return max5815_write_registers(dev, MAX5815_CMD_REF_2V5, 0x00, 0x00);
 }
