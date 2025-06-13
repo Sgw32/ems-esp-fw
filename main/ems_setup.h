@@ -44,7 +44,8 @@ typedef enum {
 // #define BAL_H_GPIO          GPIO_NUM_26
 #define CHRG_OUT_GPIO       GPIO_NUM_35
 // #define CHGR_COMPLITE_GPIO  GPIO_NUM_22
-
+#define GPIO_DECREASE GPIO_NUM_47
+#define GPIO_INCREASE GPIO_NUM_48
 
 #define GPIO_PWM        8
 #define GPIO_35V_ON     12 
@@ -76,16 +77,17 @@ typedef enum {
 #define CHRG_OUT_GPIO       GPIO_NUM_35
 // #define CHGR_COMPLITE_GPIO  GPIO_NUM_22
 
+
+#define GPIO_DECREASE GPIO_NUM_43
+#define GPIO_INCREASE GPIO_NUM_44
 #define GPIO_PWM        8
 #define GPIO_35V_ON     12 
 #define GPIO_WCLK       47
 /** @} */
 #endif
 
-// #define GPIO_DECREASE GPIO_NUM_47
-// #define GPIO_INCREASE GPIO_NUM_48
-#define GPIO_DECREASE GPIO_NUM_43
-#define GPIO_INCREASE GPIO_NUM_44
+
+
 #define DAC_VALUE_STEP    32          // Step size for increment/decrement
 #define DAC_MIN_VALUE     0
 #define DAC_MAX_VALUE     4095        // 12-bit DAC (2^12 - 1)
@@ -100,7 +102,7 @@ typedef enum {
  *  @{
  */
 #define I2C_BUS_PORT  I2C_NUM_0        /**< I2C hardware port */
-#define I2C_FRQ       (100 * 1000)     /**< I2C frequency (100 kHz) */
+#define I2C_FRQ       (400 * 1000)     /**< I2C frequency (100 kHz) */
 /** @} */
 
 /** @name SSD1306 Display Configuration

@@ -440,7 +440,7 @@ void ota_recv_fw_cb(uint8_t *buf, uint32_t length)
 
 static void ota_task_init(void)
 {
-    xTaskCreate(&ota_task, "ota_task", OTA_TASK_SIZE, NULL, 5, NULL);
+    xTaskCreatePinnedToCore(&ota_task, "ota_task", OTA_TASK_SIZE, NULL, 5, NULL, 0);
     return;
 }
 

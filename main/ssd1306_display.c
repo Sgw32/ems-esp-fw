@@ -16,7 +16,7 @@ static SSD1306_t dev;
 static char h_rate_str[17] = "";
 
 float r, x1, ya, z1, x2, y2, z2, x3, y3, z3;               //                                      //
-int f[8][2];                                                // Draw box
+int f[8][3];                                                // Draw box
 int x = 64;                                                 // 64=128/2
 int y = 32;                                                 // 32= 64/2
 int c[8][3] = {                                            // Cube

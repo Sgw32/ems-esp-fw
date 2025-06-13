@@ -18,17 +18,17 @@ dependencies:
       type: service
     version: 0.5.3
   espressif/esp_delta_ota:
-    component_hash: 3004a153daac7c5cec4083411a9fb5daa67005d1a7a384fa84123bfeebd1fdfd
+    component_hash: 77930340dfec69b8bcd39216a470624821549012f1651fa753f1b10105977c8c
     source:
       service_url: https://api.components.espressif.com/
       type: service
-    version: 1.1.1
+    version: 1.1.2
   espressif/esp_encrypted_img:
-    component_hash: e5a065c140fbc6a69a1de4fa1731b7596cc34a4a50b57913b2dc34c9ad3a0a70
+    component_hash: 81fdcfd400bddef5e7496f14e075a2bac59d815b6959689db70808ce33fd66df
     source:
       service_url: https://api.components.espressif.com/
       type: service
-    version: 2.3.0
+    version: 2.4.0
   idf:
     component_hash: null
     source:

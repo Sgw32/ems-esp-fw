@@ -6,6 +6,7 @@ static const char *TAG = "MAX5815";
 #define MAX5815_CMD_WRITE        0x30  // Write and Load DAC
 #define MAX5815_CMD_SHUTDOWN     0x20
 #define MAX5815_CMD_REF_2V5      0x71
+#define MAX5815_CMD_REF_2V0      0x72
 #define I2C_MASTER_TIMEOUT_MS 1000
 
 static esp_err_t max5815_write_registers(max5815_dev_t *dev, uint8_t cmd, uint8_t msb, uint8_t lsb)
@@ -48,7 +49,13 @@ esp_err_t max5815_init(max5815_dev_t *dev, i2c_port_t i2c_port, uint8_t i2c_addr
 
     // Try to detect the device first
     esp_err_t ret = max5815_detect(i2c_port, i2c_addr);
-
+    if (ret != ESP_OK) {
+        dev->is_detected = false;
+    }
+    else
+    {
+        dev->is_detected = true;
+    }
     dev->i2c_port = i2c_port;
     dev->i2c_addr = i2c_addr;
     dev->is_initialized = false;
@@ -104,7 +111,7 @@ esp_err_t max5815_init(max5815_dev_t *dev, i2c_port_t i2c_port, uint8_t i2c_addr
 
 esp_err_t max5815_set_channel(max5815_dev_t *dev, max5815_channel_t channel, uint16_t value)
 {
-    if (!dev || !dev->is_initialized || channel > MAX5815_CHANNEL_D) {
+    if (!dev || !dev->is_detected || !dev->is_initialized || channel > MAX5815_CHANNEL_D) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -142,6 +149,6 @@ esp_err_t max5815_set_clr(max5815_dev_t *dev, bool enabled)
 
 esp_err_t max5815_set_internal_ref(max5815_dev_t *dev)
 {
-    if (!dev || !dev->is_initialized) return ESP_ERR_INVALID_STATE;
-    return max5815_write_registers(dev, MAX5815_CMD_REF_2V5, 0x00, 0x00);
+    if (!dev) return ESP_ERR_INVALID_STATE;
+    return max5815_write_registers(dev, MAX5815_CMD_REF_2V0, 0x00, 0x00);
 }

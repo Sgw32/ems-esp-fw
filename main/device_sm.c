@@ -33,7 +33,7 @@ void process_state_off(void)
 void process_state_boot(void)
 {
     pwr_button_handle();
-    ESP_LOGI(TAG, "Device starting...wait 1 minute");
+    // ESP_LOGI(TAG, "Device starting...wait 1 minute");
     if (!init_done)
     {
         latch_power_on();
@@ -86,5 +86,5 @@ void process_device_sm()
         default:
             break;
     }
-    update_ui(device.state, get_heart_rate(), get_hrm_connected());
+    //update_ui(device.state, get_heart_rate(), get_hrm_connected());
 }

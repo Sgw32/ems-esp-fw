@@ -25,6 +25,7 @@ typedef struct {
     uint8_t i2c_addr;
     int clr_pin;
     bool is_initialized;
+    bool is_detected;
 } max5815_dev_t;
 
 /**

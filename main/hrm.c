@@ -282,17 +282,29 @@ void get_bpm(void* param) {
         if (xSemaphoreTake(hrm_mutex, portMAX_DELAY) == pdTRUE)
         {
             // Update sensor, saving to hrm_result
-            ESP_ERROR_CHECK(max30100_update(&max30100, &hrm_result));
-            if (hrm_result.pulse_detected)
+            esp_err_t ret = max30100_update(&max30100, &hrm_result);
+            if (ret==ESP_OK)
             {
-                printf("BEAT\n");
-                printf("BPM: %f | SpO2: %f%%\n", hrm_result.heart_bpm, hrm_result.spO2);
+                if (hrm_result.pulse_detected)
+                {
+                    printf("BEAT\n");
+                    printf("BPM: %f | SpO2: %f%%\n", hrm_result.heart_bpm, hrm_result.spO2);
+                }
+                else
+                {
+                    printf("No pulse detected\n");
+                }
             }
+            else
+            {
+                printf("Error reading MAX30100: %d\n", ret);
+            }
+            
             // Unlock the mutex after accessing hrm_result
             xSemaphoreGive(hrm_mutex);
         }
         //Update rate: 100Hz
-        vTaskDelay(10/portTICK_PERIOD_MS);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
     }
 }
 
@@ -347,9 +359,9 @@ void init_hrm(void)
     
     if (ret==ESP_OK)
     {
-        hrm_sensor_connected=1;
+        //hrm_sensor_connected=1;
         //Start test task
-        xTaskCreate(get_bpm, "Get BPM", 8192, NULL, 1, NULL);
+        //xTaskCreatePinnedToCore(get_bpm, "Get BPM", 8192, NULL, 1, NULL, 0);
     }
     else
     {

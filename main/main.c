@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_err.h"
@@ -36,6 +37,8 @@ static const char *TAG = "EMS main";
 
 static esp_timer_handle_t wclk_timer;
 static bool wclk_state = false;
+
+extern EmsSMTypeDef             emsSM;
 
 // Timer callback function
 static void wclk_timer_callback(void* arg)
@@ -105,6 +108,57 @@ static void init_control_gpios(void) {
     gpio_config(&io_conf);
 }
  
+static TaskHandle_t device_sm_task_handle = NULL;
+static bool last_power_state = false;
+
+static void device_sm_task(void *pvParameters) {
+    // Main loop
+    static uint16_t current_dac_value = 2048;  // Start at mid-range (2048 for 12-bit DAC)
+    TickType_t last_time = xTaskGetTickCount();
+    TickType_t last_log_time = last_time;  // Add this line
+
+    while (1) {
+        process_device_sm();
+
+        // Only configure high voltage when power state changes
+        bool current_power_state = ems_get_power_en();
+        if (current_power_state != last_power_state) {
+            configure_high_voltage(current_power_state);
+            last_power_state = current_power_state;
+        }
+
+        // Read GPIO states (active low due to pull-up)
+        bool decrease = !gpio_get_level(GPIO_DECREASE);
+        bool increase = !gpio_get_level(GPIO_INCREASE);
+
+        // Update DAC value based on button states
+        if (increase && current_dac_value < DAC_MAX_VALUE) {
+            current_dac_value = (current_dac_value + DAC_VALUE_STEP <= DAC_MAX_VALUE) ? 
+                                current_dac_value + DAC_VALUE_STEP : DAC_MAX_VALUE;
+        }
+        if (decrease && current_dac_value > DAC_MIN_VALUE) {
+            current_dac_value = (current_dac_value > DAC_VALUE_STEP) ? 
+                                current_dac_value - DAC_VALUE_STEP : DAC_MIN_VALUE;
+        }
+
+        // Update all DAC channels if any change occurred
+        if (increase || decrease) {
+            for (max5815_channel_t channel = MAX5815_CHANNEL_C; 
+                 channel <= MAX5815_CHANNEL_D; 
+                 channel++) {
+                max5815_set_channel(&dac_dev, channel, current_dac_value);
+            }
+        }
+
+        // Log value once per second
+        if ((xTaskGetTickCount() - last_log_time) >= pdMS_TO_TICKS(LOG_INTERVAL_MS)) {
+            // ESP_LOGI(TAG, "Current DAC value: %d", current_dac_value);
+            last_log_time = xTaskGetTickCount();
+        }
+        vTaskDelayUntil(&last_time, pdMS_TO_TICKS(MAIN_TASK_LOOP_TIME_MS));
+    }
+}
+
 void app_main(void)
 {
     // check which partition is running
@@ -156,6 +210,7 @@ void app_main(void)
     init_control_gpios();
     // Initialize MAX5815 DAC
     max5815_init(&dac_dev, dac_dev.i2c_port, dac_dev.i2c_addr);
+    pulseSetDACDevice(&dac_dev);
     // max5815_sine_init(&dac_dev);
     // max5815_sine_start();
 
@@ -188,60 +243,44 @@ void app_main(void)
 
     // #define RELAX_PULSE_OFF                 0
     // #define RELAX_PULSE_ON                  1
-    emsCfgSet(CFG_STIMUL_PULSE, 100);
-    emsCfgSet(CFG_STIMUL_FREQ, 9);
+    emsCfgSet(CFG_STIMUL_PULSE, 50);
+    emsCfgSet(CFG_STIMUL_FREQ, 10);
     emsCfgSet(CFG_STIMUL_TIME, 5);
     emsCfgSet(CFG_STIMUL_RISE, 1000);
     emsCfgSet(CFG_STIMUL_FAIL, 1000);
 
-    emsCfgSet(CFG_RELAX_PULSE, 100);
-    emsCfgSet(CFG_RELAX_FREQ, 9);
+    emsCfgSet(CFG_RELAX_PULSE, 50);
+    emsCfgSet(CFG_RELAX_FREQ, 10);
     emsCfgSet(CFG_RELAX_TIME, 5);
     emsCfgSet(CFG_RELAX_RISE, 1000);
     emsCfgSet(CFG_RELAX_FAIL, 1000);
+    emsCfgSet(CFG_RELAX_PULSE_PRESENT, 1);
     
     ESP_LOGI(TAG, "Start EMS common driver");
     emsStart();
 
-    // Main loop
-    static uint16_t current_dac_value = 2048;  // Start at mid-range (2048 for 12-bit DAC)
-    TickType_t last_time = xTaskGetTickCount();
-    TickType_t last_log_time = last_time;  // Add this line
+    // xTaskCreatePinnedToCore(
+    //     device_sm_task,          // Task function
+    //     "device_sm_task",        // Task name
+    //     2048,                    // Stack size (adjust if needed)
+    //     NULL,                    // Parameters
+    //     1,        // Lowest priority
+    //     &device_sm_task_handle,   // Task handle
+    //     1
+    // );
 
-    while (1) {
-        process_device_sm();
-        configure_high_voltage(ems_get_power_en());
-
-        // Read GPIO states (active low due to pull-up)
-        bool decrease = !gpio_get_level(GPIO_DECREASE);
-        bool increase = !gpio_get_level(GPIO_INCREASE);
-
-        // Update DAC value based on button states
-        if (increase && current_dac_value < DAC_MAX_VALUE) {
-            current_dac_value = (current_dac_value + DAC_VALUE_STEP <= DAC_MAX_VALUE) ? 
-                                current_dac_value + DAC_VALUE_STEP : DAC_MAX_VALUE;
-        }
-        if (decrease && current_dac_value > DAC_MIN_VALUE) {
-            current_dac_value = (current_dac_value > DAC_VALUE_STEP) ? 
-                                current_dac_value - DAC_VALUE_STEP : DAC_MIN_VALUE;
-        }
-
-        // Update all DAC channels if any change occurred
-        if (increase || decrease) {
-            for (max5815_channel_t channel = MAX5815_CHANNEL_A; 
-                 channel <= MAX5815_CHANNEL_D; 
-                 channel++) {
-                max5815_set_channel(&dac_dev, channel, current_dac_value);
-            }
-        }
-
-        // Log value once per second
-        if ((xTaskGetTickCount() - last_log_time) >= pdMS_TO_TICKS(LOG_INTERVAL_MS)) {
-            ESP_LOGI(TAG, "Current DAC value: %d", current_dac_value);
-            last_log_time = xTaskGetTickCount();
-        }
-
-        // Ensure 20 ms loop
-        vTaskDelayUntil(&last_time, pdMS_TO_TICKS(MAIN_TASK_LOOP_TIME_MS));
+        while (1) {
+        // static uint16_t angle = 0;
+        // // Generate sine wave values (0-4095 range for 12-bit DAC)
+        // uint16_t val = (uint16_t)(2047.0 * sin(angle * M_PI / 180.0) + 2048.0);
+        
+        // // Output to channels C and D
+        // max5815_set_channel(&dac_dev, MAX5815_CHANNEL_C, val);
+        // max5815_set_channel(&dac_dev, MAX5815_CHANNEL_D, val);
+        
+        // // Increment angle (adjust step size to control frequency)
+        // angle = (angle + 5) % 360;
+        
+        vTaskDelay(pdMS_TO_TICKS(100)); // Adjust delay to control update rate
     }
 }
