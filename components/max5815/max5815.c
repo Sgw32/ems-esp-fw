@@ -9,6 +9,17 @@ static const char *TAG = "MAX5815";
 #define MAX5815_CMD_REF_2V0      0x72
 #define I2C_MASTER_TIMEOUT_MS 1000
 
+typedef struct {
+    uint8_t cmd;
+    uint8_t msb;
+    uint8_t lsb;
+} max5815_write_t;
+
+QueueHandle_t i2c_write_queue;
+uint8_t global_dev_addr = 0x0;  // Global variable to store the I2C address
+
+void max5815_i2c_task(void *param);
+
 static esp_err_t max5815_write_registers(max5815_dev_t *dev, uint8_t cmd, uint8_t msb, uint8_t lsb)
 {
     uint8_t buf[3] = { cmd, msb, lsb };
@@ -104,6 +115,11 @@ esp_err_t max5815_init(max5815_dev_t *dev, i2c_port_t i2c_port, uint8_t i2c_addr
     }
 
     dev->is_initialized = true;
+    global_dev_addr = i2c_addr;  // Store the I2C address globally
+
+    i2c_write_queue = xQueueCreate(8, sizeof(max5815_write_t));
+    xTaskCreatePinnedToCore(max5815_i2c_task, "max5815_i2c_task", 2048, NULL, 5, NULL,0);
+
     ESP_LOGI(TAG, "MAX5815 initialized");
 
     return ESP_OK;
@@ -151,4 +167,40 @@ esp_err_t max5815_set_internal_ref(max5815_dev_t *dev)
 {
     if (!dev) return ESP_ERR_INVALID_STATE;
     return max5815_write_registers(dev, MAX5815_CMD_REF_2V0, 0x00, 0x00);
+}
+
+void max5815_i2c_task(void *param) {
+    max5815_write_t req;
+    while (1) {
+        if (xQueueReceive(i2c_write_queue, &req, portMAX_DELAY)) {
+            // Run the blocking I2C code here
+            uint8_t buf[3] = { req.cmd, req.msb, req.lsb };
+            i2c_cmd_handle_t handle = i2c_cmd_link_create();
+            i2c_master_start(handle);
+            i2c_master_write_byte(handle, (global_dev_addr << 1) | I2C_MASTER_WRITE, true);
+            i2c_master_write(handle, buf, sizeof(buf), true);
+            i2c_master_stop(handle);
+            i2c_master_cmd_begin(I2C_NUM_0, handle, pdMS_TO_TICKS(5));  // blocking is okay in task
+            i2c_cmd_link_delete(handle);
+        }
+    }
+}
+
+esp_err_t max5815_queue_write(uint8_t cmd, uint8_t msb, uint8_t lsb) {
+    max5815_write_t req = { .cmd = cmd, .msb = msb, .lsb = lsb };
+    return xQueueSend(i2c_write_queue, &req, 0) == pdTRUE ? ESP_OK : ESP_FAIL;
+}
+
+esp_err_t max5815_set_channel_async(max5815_dev_t *dev, max5815_channel_t channel, uint16_t value)
+{
+    if (!dev || !dev->is_detected || !dev->is_initialized || channel > MAX5815_CHANNEL_D) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    value &= 0x0FFF;
+    uint8_t cmd = MAX5815_CMD_WRITE | channel;
+    uint8_t msb = value >> 4;
+    uint8_t lsb = (value & 0x0F) << 4;
+
+    return max5815_queue_write(cmd, msb, lsb);
 }

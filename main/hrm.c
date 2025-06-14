@@ -196,7 +196,13 @@ static int blehr_gap_event(struct ble_gap_event *event, void *arg)
         MODLOG_DFLT(INFO, "connection %s; status=%d\n",
                     event->connect.status == 0 ? "established" : "failed",
                     event->connect.status);
-
+        if (event->connect.status == 0) {
+            ESP_LOGI(tag, "BLE connected, requesting MTU exchange...");
+            int rc = ble_gattc_exchange_mtu(event->connect.conn_handle, NULL, NULL);
+            if (rc != 0) {
+                ESP_LOGW(tag, "MTU exchange request failed: %d", rc);
+            }
+        }
         if (event->connect.status != 0) {
             /* Connection failed; resume advertising */
             blehr_advertise();
@@ -383,6 +389,14 @@ void init_hrm(void)
     rc = ems_gatt_svr_init();
     assert(rc == 0);
 
+    if (ble_att_set_preferred_mtu(512) != 0) 
+    {
+        ESP_LOGE(tag, "Failed to set preferred MTU\n");
+    }
+    else
+    {
+        ESP_LOGI(tag, "Preferred MTU set to 512 bytes\n");
+    }
     /* Set the default device name */
     rc = ble_svc_gap_device_name_set(device_name);
     assert(rc == 0);

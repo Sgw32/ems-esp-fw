@@ -69,6 +69,8 @@ esp_err_t max5815_set_clr(max5815_dev_t *dev, bool enabled);
  */
 esp_err_t max5815_set_internal_ref(max5815_dev_t *dev);
 
+esp_err_t max5815_set_channel_async(max5815_dev_t *dev, max5815_channel_t channel, uint16_t value);
+
 #ifdef __cplusplus
 }
 #endif

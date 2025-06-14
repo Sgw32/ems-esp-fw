@@ -29,6 +29,9 @@
 #include "max5815.h"
 #include "max5815_sine.h"
 
+#include "ems_common_driver/user.h"
+#include "sim/generic_ble.h"
+
 static const char *TAG = "EMS main";
 
 #define WCLK_FREQ_HZ    10000
@@ -39,6 +42,60 @@ static esp_timer_handle_t wclk_timer;
 static bool wclk_state = false;
 
 extern EmsSMTypeDef             emsSM;
+
+uint32_t pingCnt = 0;
+
+
+extern const struct    MuxSeries       muxSeries;
+extern struct movingAver pulseCurrent[MUX_CHANNELS], pulseVoltage[MUX_CHANNELS];
+
+struct ChannelLoad chanelLoad[MUX_CHANNELS];
+struct ChannelLoad chanelLoadLast[MUX_CHANNELS];
+uint8_t isLoadLastInit = 0;
+
+OPT3001_t opt3001;
+
+#ifdef __DEBUG_MODE__
+struct EmsPulseMessage emsPulseMessage;
+#endif
+
+uint8_t                 data[2];
+uint32_t                uid;
+BleRetTypeDef           bleRet;
+uint8_t                 str[256];
+
+extern BleModuleTypeDef bleModule;
+extern uint32_t countCommandError;
+extern uint32_t countCommandOk;
+extern SmEmsTypeDef smEms;
+
+extern uint8_t setup_error;
+extern MuxChannelTypeDef setup_channel_error;
+extern uint8_t setup_old_value_error;
+extern uint8_t setup_value_error;
+
+extern struct EmsPercentCfg emsPercentCfg[2];
+
+
+uint32_t                cntFlashValue;
+
+volatile AtomosResultTypeDef    atomResultA, atomResultB;
+uint32_t                        intAtom = 0;
+uint32_t                        cntAtom = 0;
+HardWareType                    hardware;
+
+uint32_t                batVoltL, batVoltH;
+
+bool                    buttonIsPush = false;
+bool                    impulseMsgEnabled = true;
+bool                    blinkOn = false;
+bool                    isAfterStart = false;
+uint32_t                startTime = 0;
+
+uint32_t                uart1Speed = 0;
+uint32_t                costumeId = 0;
+uint32_t                costumeIds[16]; 
+uint8_t                 costumeIdText[24]; 
 
 // Timer callback function
 static void wclk_timer_callback(void* arg)
@@ -163,22 +220,7 @@ void app_main(void)
 {
     // check which partition is running
     const esp_partition_t *partition = esp_ota_get_running_partition();
-
-    switch (partition->address) {
-        case 0x00010000:
-        ESP_LOGI(TAG, "Running partition: factory");
-        break;
-        case 0x00110000:
-        ESP_LOGI(TAG, "Running partition: ota_0");
-        break;
-        case 0x00210000:
-        ESP_LOGI(TAG, "Running partition: ota_1");
-        break;
-
-        default:
-        ESP_LOGE(TAG, "Running partition: unknown");
-        break;
-    }
+    ESP_LOGI(TAG, "Running partition: %s", partition->label);
 
     // check if an OTA has been done, if so run diagnostics
     esp_ota_img_states_t ota_state;
@@ -211,8 +253,6 @@ void app_main(void)
     // Initialize MAX5815 DAC
     max5815_init(&dac_dev, dac_dev.i2c_port, dac_dev.i2c_addr);
     pulseSetDACDevice(&dac_dev);
-    // max5815_sine_init(&dac_dev);
-    // max5815_sine_start();
 
     pwr_button_init();
     device_sm_init(); 
@@ -244,13 +284,13 @@ void app_main(void)
     // #define RELAX_PULSE_OFF                 0
     // #define RELAX_PULSE_ON                  1
     emsCfgSet(CFG_STIMUL_PULSE, 50);
-    emsCfgSet(CFG_STIMUL_FREQ, 10);
+    emsCfgSet(CFG_STIMUL_FREQ, 2);
     emsCfgSet(CFG_STIMUL_TIME, 5);
     emsCfgSet(CFG_STIMUL_RISE, 1000);
     emsCfgSet(CFG_STIMUL_FAIL, 1000);
 
     emsCfgSet(CFG_RELAX_PULSE, 50);
-    emsCfgSet(CFG_RELAX_FREQ, 10);
+    emsCfgSet(CFG_RELAX_FREQ, 2);
     emsCfgSet(CFG_RELAX_TIME, 5);
     emsCfgSet(CFG_RELAX_RISE, 1000);
     emsCfgSet(CFG_RELAX_FAIL, 1000);
@@ -259,28 +299,17 @@ void app_main(void)
     ESP_LOGI(TAG, "Start EMS common driver");
     emsStart();
 
-    // xTaskCreatePinnedToCore(
-    //     device_sm_task,          // Task function
-    //     "device_sm_task",        // Task name
-    //     2048,                    // Stack size (adjust if needed)
-    //     NULL,                    // Parameters
-    //     1,        // Lowest priority
-    //     &device_sm_task_handle,   // Task handle
-    //     1
-    // );
+    xTaskCreatePinnedToCore(
+        device_sm_task,          // Task function
+        "device_sm_task",        // Task name
+        8192,                    // Stack size (adjust if needed)
+        NULL,                    // Parameters
+        1,        // Lowest priority
+        &device_sm_task_handle,   // Task handle
+        0
+    );
 
-        while (1) {
-        // static uint16_t angle = 0;
-        // // Generate sine wave values (0-4095 range for 12-bit DAC)
-        // uint16_t val = (uint16_t)(2047.0 * sin(angle * M_PI / 180.0) + 2048.0);
-        
-        // // Output to channels C and D
-        // max5815_set_channel(&dac_dev, MAX5815_CHANNEL_C, val);
-        // max5815_set_channel(&dac_dev, MAX5815_CHANNEL_D, val);
-        
-        // // Increment angle (adjust step size to control frequency)
-        // angle = (angle + 5) % 360;
-        
+    while (1) {
         vTaskDelay(pdMS_TO_TICKS(100)); // Adjust delay to control update rate
     }
 }

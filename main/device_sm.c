@@ -86,5 +86,5 @@ void process_device_sm()
         default:
             break;
     }
-    //update_ui(device.state, get_heart_rate(), get_hrm_connected());
+    update_ui(device.state, get_heart_rate(), get_hrm_connected());
 }
