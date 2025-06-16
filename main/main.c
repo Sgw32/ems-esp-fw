@@ -257,7 +257,7 @@ void app_main(void)
     pwr_button_init();
     device_sm_init(); 
       
-    init_hrm();
+    //init_hrm();
     configure_high_voltage(1);
 
     ESP_LOGI(TAG, "Install SSD1306 panel driver");
@@ -283,31 +283,31 @@ void app_main(void)
 
     // #define RELAX_PULSE_OFF                 0
     // #define RELAX_PULSE_ON                  1
-    emsCfgSet(CFG_STIMUL_PULSE, 50);
-    emsCfgSet(CFG_STIMUL_FREQ, 2);
-    emsCfgSet(CFG_STIMUL_TIME, 5);
-    emsCfgSet(CFG_STIMUL_RISE, 1000);
-    emsCfgSet(CFG_STIMUL_FAIL, 1000);
+    emsCfgSet(CFG_STIMUL_PULSE, 180); // Pulse depth in microseconds
+    emsCfgSet(CFG_STIMUL_FREQ, 7); //Frequency in Hz of repeated pulses
+    emsCfgSet(CFG_STIMUL_TIME, 60);
+    emsCfgSet(CFG_STIMUL_RISE, 0);
+    emsCfgSet(CFG_STIMUL_FAIL, 0);
 
-    emsCfgSet(CFG_RELAX_PULSE, 50);
-    emsCfgSet(CFG_RELAX_FREQ, 2);
-    emsCfgSet(CFG_RELAX_TIME, 5);
-    emsCfgSet(CFG_RELAX_RISE, 1000);
-    emsCfgSet(CFG_RELAX_FAIL, 1000);
+    emsCfgSet(CFG_RELAX_PULSE, 180);
+    emsCfgSet(CFG_RELAX_FREQ, 7);
+    emsCfgSet(CFG_RELAX_TIME, 60);
+    emsCfgSet(CFG_RELAX_RISE, 0);
+    emsCfgSet(CFG_RELAX_FAIL, 0);
     emsCfgSet(CFG_RELAX_PULSE_PRESENT, 1);
     
     ESP_LOGI(TAG, "Start EMS common driver");
     emsStart();
 
-    xTaskCreatePinnedToCore(
-        device_sm_task,          // Task function
-        "device_sm_task",        // Task name
-        8192,                    // Stack size (adjust if needed)
-        NULL,                    // Parameters
-        1,        // Lowest priority
-        &device_sm_task_handle,   // Task handle
-        0
-    );
+    // xTaskCreatePinnedToCore(
+    //     device_sm_task,          // Task function
+    //     "device_sm_task",        // Task name
+    //     8192,                    // Stack size (adjust if needed)
+    //     NULL,                    // Parameters
+    //     1,        // Lowest priority
+    //     &device_sm_task_handle,   // Task handle
+    //     0
+    // );
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(100)); // Adjust delay to control update rate

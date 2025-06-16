@@ -125,7 +125,7 @@ typedef enum {
 /** @brief Main task loop execution interval in milliseconds. */
 #define MAIN_TASK_LOOP_TIME_MS 100
 
-#define EMS_PULSE_ENABLE_DAC
+//#define EMS_PULSE_ENABLE_DAC
 
 /** @name OTA Configuration
  *  OTA update security settings.
