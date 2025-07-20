@@ -136,4 +136,13 @@ typedef enum {
 #define CONFIG_EXAMPLE_USE_PROTOCOMM 1         /**< Enable ProtoComm for OTA communication */
 /** @} */
 
+// --- HV2201 pin mapping ---
+#define HV1_DI    GPIO_NUM_14
+#define HV1_LE    GPIO_NUM_33
+#define HV1_CLR   GPIO_NUM_34
+#define HV2_DI    GPIO_NUM_40 //Seems non-working on dev board
+#define HV2_LE    GPIO_NUM_44 //Seems non-working on dev board
+#define HV2_CLR   GPIO_NUM_42 //Seems non-working on dev board
+#define HV_CLK    GPIO_NUM_13
+
 #endif /* EMS_SETUP */

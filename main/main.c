@@ -26,6 +26,7 @@
 
 #include "ems_common_driver/ems.h"
 #include "ems_common_driver/ems_common/ems_config.h"
+#include "ems_common_driver/ems_drivers/hv2201.h"
 #include "max5815.h"
 #include "max5815_sine.h"
 
@@ -273,6 +274,12 @@ void app_main(void)
 
     ESP_LOGI(TAG, "Initialize EMS common driver");
     ems_timer_init();
+    struct MuxConf muxConf;
+    muxConf.portClr =  0;
+    muxConf.pinClr  =  0;
+    muxConf.portLE  =  0;
+    muxConf.pinLE   =  0;
+    muxConfig(&muxConf);
     pulseConfig();
 
     // #define PULSE_DEPTH_MIN_US              20

@@ -1,39 +1,82 @@
 dependencies:
   espressif/ble_conn_mgr:
     component_hash: 27aa00708f90ec6d382fd74e19abc3e359b09e9d269e33fae4bcdc03fb6f5df3
+    dependencies:
+    - name: espressif/cmake_utilities
+      registry_url: https://components.espressif.com
+      require: private
+      version: 0.*
+    - name: idf
+      require: private
+      version: '>=4.3'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
     version: 0.1.3
   espressif/ble_ota:
     component_hash: 059214dda94d03d4378201a773124f8efbad17c70b506ff4fbc30d2656e74616
+    dependencies:
+    - name: espressif/cmake_utilities
+      registry_url: https://components.espressif.com
+      require: private
+      version: 0.*
+    - name: espressif/esp_encrypted_img
+      registry_url: https://components.espressif.com
+      require: private
+      version: ^2.0.1
+    - name: idf
+      require: private
+      version: '>=4.4'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
+    targets:
+    - esp32
+    - esp32c3
+    - esp32h2
+    - esp32s3
+    - esp32c2
+    - esp32c6
     version: 0.1.14
   espressif/cmake_utilities:
     component_hash: 351350613ceafba240b761b4ea991e0f231ac7a9f59a9ee901f751bddc0bb18f
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.1'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com
       type: service
     version: 0.5.3
   espressif/esp_delta_ota:
     component_hash: 77930340dfec69b8bcd39216a470624821549012f1651fa753f1b10105977c8c
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.3'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.1.2
   espressif/esp_encrypted_img:
-    component_hash: 81fdcfd400bddef5e7496f14e075a2bac59d815b6959689db70808ce33fd66df
+    component_hash: 0540cba087bcdabf0a4ac09e95e3ed44687157c4120fc4cfd4fc548673f56b1e
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.4'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
-    version: 2.4.0
+    version: 2.5.1
   idf:
-    component_hash: null
     source:
       type: idf
-    version: 5.2.1
-manifest_hash: 53078b1a76ea0da1deeda31496fe6efdda58329f3cb5971a83d7891d73991311
+    version: 5.4.1
+direct_dependencies:
+- espressif/ble_conn_mgr
+- espressif/ble_ota
+- espressif/esp_delta_ota
+- espressif/esp_encrypted_img
+manifest_hash: 671c6f089bc78d071e37625ba3938c043961a6af08f8042fb6d3f5b7eae49068
 target: esp32s3
-version: 1.0.0
+version: 2.0.0
