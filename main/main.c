@@ -174,8 +174,14 @@ static void device_sm_task(void *pvParameters) {
     TickType_t last_time = xTaskGetTickCount();
     TickType_t last_log_time = last_time;  // Add this line
 
+    for (max5815_channel_t channel = MAX5815_CHANNEL_A; 
+            channel <= MAX5815_CHANNEL_B; 
+            channel++) {
+        max5815_set_channel(&dac_dev, channel, current_dac_value);
+    }
+
     while (1) {
-        process_device_sm();
+        //process_device_sm();
 
         // Only configure high voltage when power state changes
         bool current_power_state = ems_get_power_en();
@@ -200,8 +206,8 @@ static void device_sm_task(void *pvParameters) {
 
         // Update all DAC channels if any change occurred
         if (increase || decrease) {
-            for (max5815_channel_t channel = MAX5815_CHANNEL_C; 
-                 channel <= MAX5815_CHANNEL_D; 
+            for (max5815_channel_t channel = MAX5815_CHANNEL_A; 
+                 channel <= MAX5815_CHANNEL_B; 
                  channel++) {
                 max5815_set_channel(&dac_dev, channel, current_dac_value);
             }
@@ -299,15 +305,15 @@ void app_main(void)
     ESP_LOGI(TAG, "Start EMS common driver");
     emsStart();
 
-    // xTaskCreatePinnedToCore(
-    //     device_sm_task,          // Task function
-    //     "device_sm_task",        // Task name
-    //     8192,                    // Stack size (adjust if needed)
-    //     NULL,                    // Parameters
-    //     1,        // Lowest priority
-    //     &device_sm_task_handle,   // Task handle
-    //     0
-    // );
+    xTaskCreatePinnedToCore(
+        device_sm_task,          // Task function
+        "device_sm_task",        // Task name
+        8192,                    // Stack size (adjust if needed)
+        NULL,                    // Parameters
+        1,        // Lowest priority
+        &device_sm_task_handle,   // Task handle
+        0
+    );
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(100)); // Adjust delay to control update rate

@@ -2108,16 +2108,12 @@ CONFIG_WIFI_PROV_STA_ALL_CHANNEL_SCAN=y
 # end of Wi-Fi Provisioning Manager
 
 #
-# BLE Connection Management
+# OTA Manager
 #
-CONFIG_BLE_CONN_MGR_ROLE_PERIPHERAL=y
-# CONFIG_BLE_CONN_MGR_ROLE_CENTRAL is not set
-# CONFIG_BLE_CONN_MGR_ROLE_BOTH is not set
-CONFIG_BLE_CONN_MGR_ROLE=0
-CONFIG_BLE_CONN_MGR_WAIT_DURATION=31
-# CONFIG_BLE_CONN_MGR_EXTENDED_ADV is not set
-# CONFIG_BLE_CONN_MGR_SM is not set
-# end of BLE Connection Management
+# CONFIG_OTA_WITHOUT_SECURITY is not set
+CONFIG_OTA_WITH_PROTOCOMM=y
+# CONFIG_PRE_ENC_OTA is not set
+# end of OTA Manager
 
 #
 # Pre Encrypted OTA Configuration
@@ -2125,14 +2121,6 @@ CONFIG_BLE_CONN_MGR_WAIT_DURATION=31
 CONFIG_PRE_ENCRYPTED_OTA_USE_RSA=y
 # CONFIG_PRE_ENCRYPTED_OTA_USE_ECIES is not set
 # end of Pre Encrypted OTA Configuration
-
-#
-# OTA Manager
-#
-# CONFIG_OTA_WITHOUT_SECURITY is not set
-CONFIG_OTA_WITH_PROTOCOMM=y
-# CONFIG_PRE_ENC_OTA is not set
-# end of OTA Manager
 
 #
 # CMake Utilities
@@ -2144,6 +2132,18 @@ CONFIG_CU_DIAGNOSTICS_COLOR_ALWAYS=y
 # CONFIG_CU_GCC_LTO_ENABLE is not set
 # CONFIG_CU_GCC_STRING_1BYTE_ALIGN is not set
 # end of CMake Utilities
+
+#
+# BLE Connection Management
+#
+CONFIG_BLE_CONN_MGR_ROLE_PERIPHERAL=y
+# CONFIG_BLE_CONN_MGR_ROLE_CENTRAL is not set
+# CONFIG_BLE_CONN_MGR_ROLE_BOTH is not set
+CONFIG_BLE_CONN_MGR_ROLE=0
+CONFIG_BLE_CONN_MGR_WAIT_DURATION=31
+# CONFIG_BLE_CONN_MGR_EXTENDED_ADV is not set
+# CONFIG_BLE_CONN_MGR_SM is not set
+# end of BLE Connection Management
 # end of Component config
 
 # CONFIG_IDF_EXPERIMENTAL_FEATURES is not set
