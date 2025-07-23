@@ -31,6 +31,7 @@
 
 #include "ems_common_driver/user.h"
 #include "sim/generic_ble.h"
+#include "extra_tasks.h"
 
 static const char *TAG = "EMS main";
 
@@ -314,6 +315,11 @@ void app_main(void)
         &device_sm_task_handle,   // Task handle
         0
     );
+
+    // Create additional tasks similar to legacy firmware
+    xTaskCreatePinnedToCore(main_task, "main_task", 4096, NULL, 5, NULL, 0);
+    xTaskCreatePinnedToCore(cmd_proc_task, "cmd_proc_task", 4096, NULL, 5, NULL, 0);
+    xTaskCreatePinnedToCore(bt_task, "bt_task", 4096, NULL, 5, NULL, 0);
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(100)); // Adjust delay to control update rate
