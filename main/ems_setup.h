@@ -145,4 +145,6 @@ typedef enum {
 #define HV2_CLR   GPIO_NUM_42 //Seems non-working on dev board
 #define HV_CLK    GPIO_NUM_13
 
+//#define TURN_OFF_WHEN_CHARGING
+
 #endif /* EMS_SETUP */

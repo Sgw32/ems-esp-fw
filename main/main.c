@@ -43,61 +43,11 @@ static const char *TAG = "EMS main";
 static esp_timer_handle_t wclk_timer;
 static bool wclk_state = false;
 
-extern EmsSMTypeDef             emsSM;
-
-uint32_t pingCnt = 0;
-
-
-extern const struct    MuxSeries       muxSeries;
-extern struct movingAver pulseCurrent[MUX_CHANNELS], pulseVoltage[MUX_CHANNELS];
-
-struct ChannelLoad chanelLoad[MUX_CHANNELS];
-struct ChannelLoad chanelLoadLast[MUX_CHANNELS];
-uint8_t isLoadLastInit = 0;
-
 OPT3001_t opt3001;
 
 #ifdef __DEBUG_MODE__
 struct EmsPulseMessage emsPulseMessage;
 #endif
-
-uint8_t                 data[2];
-uint32_t                uid;
-BleRetTypeDef           bleRet;
-uint8_t                 str[256];
-
-extern BleModuleTypeDef bleModule;
-extern uint32_t countCommandError;
-extern uint32_t countCommandOk;
-extern SmEmsTypeDef smEms;
-
-extern uint8_t setup_error;
-extern MuxChannelTypeDef setup_channel_error;
-extern uint8_t setup_old_value_error;
-extern uint8_t setup_value_error;
-
-extern struct EmsPercentCfg emsPercentCfg[2];
-
-
-uint32_t                cntFlashValue;
-
-volatile AtomosResultTypeDef    atomResultA, atomResultB;
-uint32_t                        intAtom = 0;
-uint32_t                        cntAtom = 0;
-HardWareType                    hardware;
-
-uint32_t                batVoltL, batVoltH;
-
-bool                    buttonIsPush = false;
-bool                    impulseMsgEnabled = true;
-bool                    blinkOn = false;
-bool                    isAfterStart = false;
-uint32_t                startTime = 0;
-
-uint32_t                uart1Speed = 0;
-uint32_t                costumeId = 0;
-uint32_t                costumeIds[16]; 
-uint8_t                 costumeIdText[24]; 
 
 // Timer callback function
 static void wclk_timer_callback(void* arg)
@@ -299,13 +249,13 @@ void app_main(void)
     // #define RELAX_PULSE_ON                  1
     emsCfgSet(CFG_STIMUL_PULSE, 180); // Pulse depth in microseconds
     emsCfgSet(CFG_STIMUL_FREQ, 7); //Frequency in Hz of repeated pulses
-    emsCfgSet(CFG_STIMUL_TIME, 60);
+    emsCfgSet(CFG_STIMUL_TIME_MS, 60000);
     emsCfgSet(CFG_STIMUL_RISE, 0);
     emsCfgSet(CFG_STIMUL_FAIL, 0);
 
     emsCfgSet(CFG_RELAX_PULSE, 180);
     emsCfgSet(CFG_RELAX_FREQ, 7);
-    emsCfgSet(CFG_RELAX_TIME, 60);
+    emsCfgSet(CFG_RELAX_TIME_MS, 60000);
     emsCfgSet(CFG_RELAX_RISE, 0);
     emsCfgSet(CFG_RELAX_FAIL, 0);
     emsCfgSet(CFG_RELAX_PULSE_PRESENT, 1);
