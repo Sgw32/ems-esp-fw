@@ -276,7 +276,6 @@ void app_main(void)
     // Create additional tasks similar to legacy firmware
     xTaskCreatePinnedToCore(main_task, "main_task", 4096, NULL, 5, NULL, 0);
     xTaskCreatePinnedToCore(cmd_proc_task, "cmd_proc_task", 4096, NULL, 5, NULL, 0);
-    xTaskCreatePinnedToCore(bt_task, "bt_task", 4096, NULL, 5, NULL, 0);
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(100)); // Adjust delay to control update rate
