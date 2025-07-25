@@ -1,5 +1,5 @@
 idf_build_get_property(project_dir PROJECT_DIR)
-idf_component_register(SRCS "ems_ble_ota.c" "device_sm.c" "gatt_svr.c" "hrm.c" "i2c_master.c" "main.c" "ssd1306_display.c" "pwr_button.c" "extra_tasks.c"
+idf_component_register(SRCS "ems_ble_ota.c" "device_sm.c" "gatt_svr.c"      "i2c_master.c" "main.c" "ssd1306_display.c" "pwr_button.c" "extra_tasks.c"
                             "ems_common_driver/utils/movingaverage.c" "ems_common_driver/utils/atomos.c" "ems_common_driver/utils/str.c" 
                             "ems_common_driver/ems_common/ems_config.c" "ems_common_driver/ems_common/ems_pulse.c" 
                             "ems_common_driver/ems_common/pwr.c" "ems_common_driver/ems_drivers/measure.c" 

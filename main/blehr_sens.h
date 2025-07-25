@@ -58,32 +58,7 @@ typedef enum {
  /** @} */
  
  /** @brief Handle for the Heart Rate Measurement characteristic */
- extern uint16_t hrs_hrm_handle;
- 
- /** @brief Forward declarations for BLE stack structures */
- struct ble_hs_cfg;
- struct ble_gatt_register_ctxt;
- 
- /**
-  * @brief GATT server registration callback.
-  *
-  * This function is called when a GATT attribute is registered.
-  *
-  * @param ctxt Pointer to the registration context.
-  * @param arg User-defined argument.
-  */
- void ems_gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg);
- 
- /**
-  * @brief Initializes the GATT server.
-  *
-  * This function sets up the GATT attributes and services for the Heart Rate Sensor.
-  *
-  * @return 0 on success, or an error code on failure.
-  */
- int ems_gatt_svr_init(void);
-
- uint8_t ems_get_power_en(void);
+extern uint16_t hrs_hrm_handle;
  
  #ifdef __cplusplus
  }

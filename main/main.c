@@ -17,7 +17,7 @@
 
 #include "blehr_sens.h"
 #include "ems_setup.h"
-#include "hrm.h"
+#include "gatt_svr.h"
 #include "ssd1306_display.h"
 #include "pwr_button.h"
 #include "device_sm.h"
@@ -215,7 +215,7 @@ void app_main(void)
     pwr_button_init();
     device_sm_init(); 
       
-    //init_hrm();
+    init_ems_ble();
     configure_high_voltage(1);
 
     ESP_LOGI(TAG, "Install SSD1306 panel driver");

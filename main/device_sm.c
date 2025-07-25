@@ -3,7 +3,7 @@
 #include "pwr_button.h"
 #include "ssd1306_display.h"
 #include "esp_log.h"
-#include "hrm.h"
+#include "gatt_svr.h"
 
 static const char *TAG = "DEVICE_SM";
 static device_sm_t device;

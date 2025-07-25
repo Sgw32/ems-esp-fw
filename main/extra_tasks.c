@@ -530,6 +530,7 @@ void cmd_proc_task(void *p)
 
                 // устанавливаем конфигурацию
                 case PARSE_CONF:
+                    printf("PARSE_CONF\n");
                     // не работает проверка на допустимый диапазон!!!!! сделать срочно!!!!!
                     if(getConfig(&cmdCfg) == CMD_OK)
                     {

@@ -1,39 +1,52 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
+#include "gatt_svr.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include "esp_log.h"
+#include "nvs_flash.h"
 #include "host/ble_hs.h"
 #include "host/ble_uuid.h"
+#include "nimble/nimble_port.h"
+#include "nimble/nimble_port_freertos.h"
+#include "nimble/ble.h"
+#include "host/ble_gatt.h"
+#include "host/ble_hs.h"
+#include "host/util/util.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
 
+#include "max30100/max30100.h"
+
 #include "ems_common_driver/ems.h"
-
 #include "esp_ota_ops.h"
-
 #include "blehr_sens.h"
+#include "ems_setup.h"
+#include "ems_common_driver/ems_drivers/uart.h"
 
 static const char *TAG = "GATT_SVR";
 static const char *manuf_name = "Future Fitness EMS";
 static const char *model_num = "EMS ESP32";
+
+static TimerHandle_t blehr_tx_timer;
+
+static bool notify_state;
+
+static uint16_t conn_handle;
+
+static const char *device_name = "ems_ble";
+
+static int blehr_gap_event(struct ble_gap_event *event, void *arg);
+
+static uint8_t blehr_addr_type;
+
+/* Variable to simulate heart beats */
+static uint8_t heartrate = 90;
+
+static uint8_t hrm_sensor_connected = 0;
+static max30100_config_t max30100 = {};
+static max30100_data_t hrm_result = {};
+SemaphoreHandle_t hrm_mutex;
+
 uint16_t hrs_hrm_handle;
 
 uint8_t gatt_svr_chr_ota_control_val;
@@ -84,6 +97,26 @@ static int gatt_svr_nus_tx_cb(uint16_t conn_handle, uint16_t attr_handle,
 
 static int gatt_svr_nus_rx_cb(uint16_t conn_handle, uint16_t attr_handle,
                               struct ble_gatt_access_ctxt *ctxt, void *arg);
+
+/**
+ * Utility function to log an array of bytes.
+ */
+void print_bytes(const uint8_t *bytes, int len)
+{
+    int i;
+    for (i = 0; i < len; i++) {
+        MODLOG_DFLT(INFO, "%s0x%02x", i != 0 ? ":" : "", bytes[i]);
+    }
+}
+
+void print_addr(const void *addr)
+{
+    const uint8_t *u8p;
+
+    u8p = addr;
+    MODLOG_DFLT(INFO, "%02x:%02x:%02x:%02x:%02x:%02x",
+                u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
+}                              
 // service: OTA Service
 // d6f1d96d-594c-4c53-b1c6-244a1dfde6d8
 static const ble_uuid128_t gatt_svr_svc_ota_uuid =
@@ -114,7 +147,7 @@ static const ble_uuid128_t nus_tx_uuid =
     BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0,
                      0x93, 0xf3, 0xa3, 0xb5, 0x03, 0x00, 0x40, 0x6e);
 
-static uint16_t nus_tx_val_handle;                     
+uint16_t nus_tx_val_handle;                     
 
 static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
     {
@@ -541,6 +574,8 @@ static int gatt_svr_nus_rx_cb(uint16_t conn_handle, uint16_t attr_handle,
 
     ESP_LOGI(TAG, "NUS RX: Received %d bytes", len);
     ESP_LOG_BUFFER_HEXDUMP(TAG, data, len, ESP_LOG_INFO);
+    // Inject received BLE data into UART RX buffer for cmd_parser
+    uartBLEInjectRxBytes(data, len);
 
     // Echo back
     struct os_mbuf *om = ble_hs_mbuf_from_flat(data, len);
@@ -558,3 +593,372 @@ static int gatt_svr_nus_tx_cb(uint16_t conn_handle, uint16_t attr_handle,
     // This characteristic is notify-only, nothing to do here
     return BLE_ATT_ERR_READ_NOT_PERMITTED;
 }
+
+// static int ble_gap_event_cb(struct ble_gap_event *event, void *arg) {
+//     switch (event->type) {
+//     case BLE_GAP_EVENT_CONNECT:
+//         if (event->connect.status == 0) {
+// #ifdef IS_ESP32
+//             uartBLESetConnHandle(event->connect.conn_handle);
+// #endif
+//         }
+//         break;
+//     case BLE_GAP_EVENT_MTU:
+// #ifdef IS_ESP32
+//         uartBLESetMTU(event->mtu.value);
+// #endif
+//         break;
+//     // ...other events...
+//     }
+//     return 0;
+// }
+
+/*
+ * Enables advertising with parameters:
+ *     o General discoverable mode
+ *     o Undirected connectable mode
+ */
+static void ems_ble_advertise(void)
+{
+    struct ble_gap_adv_params adv_params;
+    struct ble_hs_adv_fields fields;
+    int rc;
+
+    /*
+     *  Set the advertisement data included in our advertisements:
+     *     o Flags (indicates advertisement type and other general info)
+     *     o Advertising tx power
+     *     o Device name
+     */
+    memset(&fields, 0, sizeof(fields));
+
+    /*
+     * Advertise two flags:
+     *      o Discoverability in forthcoming advertisement (general)
+     *      o BLE-only (BR/EDR unsupported)
+     */
+    fields.flags = BLE_HS_ADV_F_DISC_GEN |
+                   BLE_HS_ADV_F_BREDR_UNSUP;
+
+    /*
+     * Indicate that the TX power level field should be included; have the
+     * stack fill this value automatically.  This is done by assigning the
+     * special value BLE_HS_ADV_TX_PWR_LVL_AUTO.
+     */
+    fields.tx_pwr_lvl_is_present = 1;
+    fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
+
+    fields.name = (uint8_t *)device_name;
+    fields.name_len = strlen(device_name);
+    fields.name_is_complete = 1;
+
+    rc = ble_gap_adv_set_fields(&fields);
+    if (rc != 0) {
+        MODLOG_DFLT(ERROR, "error setting advertisement data; rc=%d\n", rc);
+        return;
+    }
+
+    /* Begin advertising */
+    memset(&adv_params, 0, sizeof(adv_params));
+    adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
+    adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
+    rc = ble_gap_adv_start(blehr_addr_type, NULL, BLE_HS_FOREVER,
+                           &adv_params, blehr_gap_event, NULL);
+    if (rc != 0) {
+        MODLOG_DFLT(ERROR, "error enabling advertisement; rc=%d\n", rc);
+        return;
+    }
+}
+
+static void blehr_tx_hrate_stop(void)
+{
+    xTimerStop( blehr_tx_timer, 1000 / portTICK_PERIOD_MS );
+}
+
+/* Reset heart rate measurement */
+static void blehr_tx_hrate_reset(void)
+{
+    int rc;
+
+    if (xTimerReset(blehr_tx_timer, 1000 / portTICK_PERIOD_MS ) == pdPASS) {
+        rc = 0;
+    } else {
+        rc = 1;
+    }
+
+    assert(rc == 0);
+
+}
+
+/* This function simulates heart beat and notifies it to the client */
+static void blehr_tx_hrate(TimerHandle_t ev)
+{
+    static uint8_t hrm[2];
+    int rc;
+    struct os_mbuf *om;
+
+    if (!notify_state) {
+        blehr_tx_hrate_stop();
+        heartrate = 90;
+        return;
+    }
+
+    
+    if (!hrm_sensor_connected)
+    {
+        hrm[0] = 0x06; /* contact of a sensor */
+        hrm[1] = heartrate; /* storing dummy data */
+        /* Simulation of heart beats */
+        heartrate++;
+        if (heartrate == 160) {
+            heartrate = 90;
+        }
+        if (hrm_mutex != NULL)
+        {
+            if (xSemaphoreTake(hrm_mutex, portMAX_DELAY) == pdTRUE) {
+                hrm_result.heart_bpm = heartrate;
+                hrm_result.pulse_detected = 1;
+                xSemaphoreGive(hrm_mutex);
+            }
+        }
+    }
+    else
+    {
+        if (hrm_mutex != NULL)
+        {
+            if (xSemaphoreTake(hrm_mutex, portMAX_DELAY) == pdTRUE) {
+                heartrate = hrm_result.heart_bpm;
+                hrm[0] = hrm_result.pulse_detected ? 0x06 : 0x00; /* contact of a sensor */
+                hrm[1] = heartrate; /* storing dummy data */
+                xSemaphoreGive(hrm_mutex);
+            }
+        }
+    }
+    
+    om = ble_hs_mbuf_from_flat(hrm, sizeof(hrm));
+    rc = ble_gatts_notify_custom(conn_handle, hrs_hrm_handle, om);
+
+    assert(rc == 0);
+
+    blehr_tx_hrate_reset();
+}
+
+static int blehr_gap_event(struct ble_gap_event *event, void *arg)
+{
+    switch (event->type) {
+    case BLE_GAP_EVENT_CONNECT:
+        /* A new connection was established or a connection attempt failed */
+        MODLOG_DFLT(INFO, "connection %s; status=%d\n",
+                    event->connect.status == 0 ? "established" : "failed",
+                    event->connect.status);
+        if (event->connect.status == 0) {
+            ESP_LOGI(TAG, "BLE connected, requesting MTU exchange...");
+            int rc = ble_gattc_exchange_mtu(event->connect.conn_handle, NULL, NULL);
+            uartBLESetConnHandle(event->connect.conn_handle);
+            if (rc != 0) {
+                ESP_LOGW(TAG, "MTU exchange request failed: %d", rc);
+            }
+        }
+        if (event->connect.status != 0) {
+            /* Connection failed; resume advertising */
+            ems_ble_advertise();
+        }
+        conn_handle = event->connect.conn_handle;
+        break;
+
+    case BLE_GAP_EVENT_DISCONNECT:
+        MODLOG_DFLT(INFO, "disconnect; reason=%d\n", event->disconnect.reason);
+
+        /* Connection terminated; resume advertising */
+        ems_ble_advertise();
+        break;
+
+    case BLE_GAP_EVENT_ADV_COMPLETE:
+        MODLOG_DFLT(INFO, "adv complete\n");
+        ems_ble_advertise();
+        break;
+
+    case BLE_GAP_EVENT_SUBSCRIBE:
+        MODLOG_DFLT(INFO, "subscribe event; cur_notify=%d\n value handle; "
+                    "val_handle=%d\n",
+                    event->subscribe.cur_notify, hrs_hrm_handle);
+        if (event->subscribe.attr_handle == hrs_hrm_handle) {
+            notify_state = event->subscribe.cur_notify;
+            blehr_tx_hrate_reset();
+        } else if (event->subscribe.attr_handle != hrs_hrm_handle) {
+            notify_state = event->subscribe.cur_notify;
+            blehr_tx_hrate_stop();
+        }
+        ESP_LOGI("BLE_GAP_SUBSCRIBE_EVENT", "conn_handle from subscribe=%d", conn_handle);
+        break;
+
+    case BLE_GAP_EVENT_MTU:
+        MODLOG_DFLT(INFO, "mtu update event; conn_handle=%d mtu=%d\n",
+                    event->mtu.conn_handle,
+                    event->mtu.value);
+        uartBLESetMTU(event->mtu.value);
+        break;
+
+    }
+
+    return 0;
+}
+
+static void ems_ble_on_reset(int reason)
+{
+    MODLOG_DFLT(ERROR, "Resetting state; reason=%d\n", reason);
+}
+
+static void ems_ble_on_sync(void)
+{
+    int rc;
+
+    rc = ble_hs_id_infer_auto(0, &blehr_addr_type);
+    assert(rc == 0);
+
+    uint8_t addr_val[6] = {0};
+    rc = ble_hs_id_copy_addr(blehr_addr_type, addr_val, NULL);
+
+    MODLOG_DFLT(INFO, "Device Address: ");
+    print_addr(addr_val);
+    MODLOG_DFLT(INFO, "\n");
+
+    /* Begin advertising */
+    ems_ble_advertise();
+}
+
+void ems_ble_host_task(void *param)
+{
+    ESP_LOGI(TAG, "BLE Host Task Started");
+    /* This function will return only when nimble_port_stop() is executed */
+    nimble_port_run();
+
+    nimble_port_freertos_deinit();
+}
+
+void get_bpm(void* param) {
+    printf("MAX30100 Test\n");
+    
+    while(true) 
+    {
+        // Lock the mutex before accessing hrm_result
+        if (xSemaphoreTake(hrm_mutex, portMAX_DELAY) == pdTRUE)
+        {
+            // Update sensor, saving to hrm_result
+            esp_err_t ret = max30100_update(&max30100, &hrm_result);
+            if (ret==ESP_OK)
+            {
+                if (hrm_result.pulse_detected)
+                {
+                    printf("BEAT\n");
+                    printf("BPM: %f | SpO2: %f%%\n", hrm_result.heart_bpm, hrm_result.spO2);
+                }
+                else
+                {
+                    printf("No pulse detected\n");
+                }
+            }
+            else
+            {
+                printf("Error reading MAX30100: %d\n", ret);
+            }
+            
+            // Unlock the mutex after accessing hrm_result
+            xSemaphoreGive(hrm_mutex);
+        }
+        //Update rate: 100Hz
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+    }
+}
+
+uint16_t get_heart_rate()
+{
+    uint16_t res = 0;
+    if (hrm_mutex != NULL)
+    {
+        if (xSemaphoreTake(hrm_mutex, portMAX_DELAY) == pdTRUE)
+        {
+            res = hrm_result.heart_bpm;
+            xSemaphoreGive(hrm_mutex);
+        }
+    }
+    return res;
+}
+
+uint8_t get_hrm_connected()
+{
+    if (hrm_mutex != NULL)
+    {
+        bool pulse_detected = false;
+        if (xSemaphoreTake(hrm_mutex, portMAX_DELAY) == pdTRUE)
+        {
+            pulse_detected = hrm_result.pulse_detected;
+            xSemaphoreGive(hrm_mutex);
+        }
+        return pulse_detected;
+    }
+    return 0;
+}
+
+void init_ems_ble(void)
+{
+    int rc;
+    esp_err_t ret;
+    hrm_mutex = xSemaphoreCreateMutex();
+    if (hrm_mutex == NULL) {
+        printf("Failed to create mutex\n");
+        return;
+    }
+    //Init sensor at I2C_NUM_0
+    ret = max30100_init( &max30100, I2C_BUS_PORT,
+                   MAX30100_DEFAULT_OPERATING_MODE,
+                   MAX30100_DEFAULT_SAMPLING_RATE,
+                   MAX30100_DEFAULT_LED_PULSE_WIDTH,
+                   MAX30100_DEFAULT_IR_LED_CURRENT,
+                   MAX30100_DEFAULT_START_RED_LED_CURRENT,
+                   MAX30100_DEFAULT_MEAN_FILTER_SIZE,
+                   MAX30100_DEFAULT_PULSE_BPM_SAMPLE_SIZE,
+                   true, false );
+    
+    if (ret==ESP_OK)
+    {
+        //hrm_sensor_connected=1;
+        //Start test task
+        //xTaskCreatePinnedToCore(get_bpm, "Get BPM", 8192, NULL, 1, NULL, 0);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "MAX30100 is not connected! Using emulated data");
+    }
+    
+    ret = nimble_port_init();
+    if (ret != ESP_OK) {
+        MODLOG_DFLT(ERROR, "Failed to init nimble %d \n", ret);
+        return;
+    }
+    /* Initialize the NimBLE host configuration */
+    ble_hs_cfg.sync_cb = ems_ble_on_sync;
+    ble_hs_cfg.reset_cb = ems_ble_on_reset;
+
+    /* name, period/time,  auto reload, timer ID, callback */
+    blehr_tx_timer = xTimerCreate("blehr_tx_timer", pdMS_TO_TICKS(1000), pdTRUE, (void *)0, blehr_tx_hrate);
+
+    rc = ems_gatt_svr_init();
+    assert(rc == 0);
+
+    if (ble_att_set_preferred_mtu(512) != 0) 
+    {
+        ESP_LOGE(TAG, "Failed to set preferred MTU\n");
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Preferred MTU set to 512 bytes\n");
+    }
+    /* Set the default device name */
+    rc = ble_svc_gap_device_name_set(device_name);
+    assert(rc == 0);
+
+    /* Start the task */
+    nimble_port_freertos_init(ems_ble_host_task);
+}
+
