@@ -12,6 +12,7 @@
 #include "esp_log.h"
 #include "i2c_master.h"
 #include "nvs_flash.h"
+#include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "esp_timer.h"
 
@@ -27,6 +28,8 @@
 #include "ems_common_driver/ems.h"
 #include "ems_common_driver/ems_common/ems_config.h"
 #include "ems_common_driver/ems_drivers/hv2201.h"
+#include "ems_common_driver/ems_drivers/max5741.h"
+#include "esp32/esp32_id.h"
 #include "max5815.h"
 #include "max5815_sine.h"
 
@@ -105,6 +108,25 @@ static max5815_dev_t dac_dev = {
     .clr_pin = GPIO_DAC_CLR,  
     .is_initialized = false
 };
+
+// static spi_bus_config_t buscfg = {
+//       .mosi_io_num = HV1_DI,
+//       .miso_io_num = -1,
+//       .sclk_io_num = HV_CLK,
+//       .quadwp_io_num = -1,
+//       .quadhd_io_num = -1,
+//       .max_transfer_sz = MUX_SPI_BYTES_LEN,
+// };
+
+static spi_device_handle_t max5741_dh;
+static spi_device_interface_config_t max5741_devcfg = {
+    .clock_speed_hz = 19000000, // 19 MHz
+    .mode = 1,
+    .spics_io_num = 45,
+    .queue_size = 1,
+};
+
+static MAX5741_t p_dac_dev = {};
 
 static void init_control_gpios(void) {
     gpio_config_t io_conf = {
@@ -206,11 +228,13 @@ void app_main(void)
 
     i2c_init();
     i2c_scan();
+    Esp32IdInit();
+    ESP_LOGI(TAG, "Device ID: %s", Esp32Id());
     ESP_LOGI(TAG, "I2C initialized");
     init_control_gpios();
     // Initialize MAX5815 DAC
     max5815_init(&dac_dev, dac_dev.i2c_port, dac_dev.i2c_addr);
-    pulseSetDACDevice(&dac_dev);
+    
 
     pwr_button_init();
     device_sm_init(); 
@@ -225,13 +249,20 @@ void app_main(void)
 
     ESP_LOGI(TAG, "Initialize EMS common driver");
     ems_timer_init();
+
     struct MuxConf muxConf;
+    //muxConf.buscfg = &buscfg;
     muxConf.portClr =  0;
     muxConf.pinClr  =  0;
     muxConf.portLE  =  0;
     muxConf.pinLE   =  0;
     muxConfig(&muxConf);
     pulseConfig();
+
+    // spi_bus_initialize(HV_SPI_HOST, &buscfg, SPI_DMA_CH_AUTO);
+    spi_bus_add_device(HV_SPI_HOST, &max5741_devcfg, &max5741_dh);
+    MAX5741_Init(&p_dac_dev, &max5741_dh);
+    pulseSetDACDevice(&p_dac_dev);
 
     // #define PULSE_DEPTH_MIN_US              20
     // #define PULSE_DEPTH_MAX_US              250

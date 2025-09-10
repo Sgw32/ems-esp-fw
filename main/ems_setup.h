@@ -147,4 +147,8 @@ typedef enum {
 
 //#define TURN_OFF_WHEN_CHARGING
 
+#ifndef HV_SPI_HOST
+#define HV_SPI_HOST SPI2_HOST
+#endif
+
 #endif /* EMS_SETUP */
