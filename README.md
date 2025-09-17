@@ -73,3 +73,23 @@ idf.py flash monitor
 ```bash
 idf.py monitor
 ```
+
+---
+
+## **MAX30100 Sensor Test Application**
+To build a minimal firmware that only initialises the **MAX30100** sensor and
+prints its readings to the serial console:
+
+1. Run `idf.py menuconfig`.
+2. Navigate to **Application Configuration → Build MAX30100 sensor test application** and enable it.
+3. (Optional) Adjust the console update period to change how frequently samples are printed.
+4. Build and flash the firmware as usual with `idf.py build flash monitor`.
+
+You can also enable the option non-interactively:
+
+```bash
+idf.py -D CONFIG_APP_MAX30100_TEST=y build flash monitor
+```
+
+With the option enabled the firmware initialises only the I2C bus and the
+MAX30100 driver, periodically logging the measured BPM and SpO2 values.
