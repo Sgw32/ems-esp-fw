@@ -29,6 +29,8 @@
 #include "ems_common_driver/ems_common/ems_config.h"
 #include "ems_common_driver/ems_drivers/hv2201.h"
 #include "ems_common_driver/ems_drivers/max5741.h"
+#include "ems_common_driver/ems_drivers/lsm6ds3.h"
+#include "ems_common_driver/ems_drivers/hdc2080.h"
 #include "esp32/esp32_id.h"
 #include "max5815.h"
 #include "max5815_sine.h"
@@ -196,6 +198,43 @@ static void device_sm_task(void *pvParameters) {
     }
 }
 
+static void sensor_boot_test(void) {
+    ESP_LOGI(TAG, "Starting sensor boot test...");
+
+    LSM6DS3_t imu = {0};
+    HDC2080_t hdc = {0};
+    i2c_port_t port = I2C_NUM_0;   // <-- real variable
+
+    if (LSM6DS3_Init(&imu, 0x6A << 1, (void*)&port) == LSM6DS3_OK) {
+        ESP_LOGI(TAG, "LSM6DS3 init OK");
+        if (LSM6DS3_ReadAccel(&imu) == LSM6DS3_OK) {
+            ESP_LOGI(TAG, "Accel: X=%d Y=%d Z=%d",
+                     imu.accel[0], imu.accel[1], imu.accel[2]);
+        }
+        if (LSM6DS3_ReadGyro(&imu) == LSM6DS3_OK) {
+            ESP_LOGI(TAG, "Gyro: X=%d Y=%d Z=%d",
+                     imu.gyro[0], imu.gyro[1], imu.gyro[2]);
+        }
+    } else {
+        ESP_LOGE(TAG, "LSM6DS3 init failed!");
+    }
+
+    if (HDC2080_Init(&hdc, 0x40 << 1, (void*)&port) == HDC2080_OK) {
+        ESP_LOGI(TAG, "HDC2080 init OK");
+        if (HDC2080_ReadTemperature(&hdc) == HDC2080_OK) {
+            ESP_LOGI(TAG, "Temperature: %.2f C", hdc.temperature);
+        }
+        if (HDC2080_ReadHumidity(&hdc) == HDC2080_OK) {
+            ESP_LOGI(TAG, "Humidity: %.2f %%", hdc.humidity);
+        }
+    } else {
+        ESP_LOGE(TAG, "HDC2080 init failed!");
+    }
+
+    ESP_LOGI(TAG, "Sensor boot test complete.");
+}
+
+
 void app_main(void)
 {
     // check which partition is running
@@ -234,7 +273,7 @@ void app_main(void)
     init_control_gpios();
     // Initialize MAX5815 DAC
     max5815_init(&dac_dev, dac_dev.i2c_port, dac_dev.i2c_addr);
-    
+    sensor_boot_test();
 
     pwr_button_init();
     device_sm_init(); 

@@ -8,6 +8,7 @@ idf_component_register(SRCS "ems_ble_ota.c" "device_sm.c" "gatt_svr.c"      "i2c
                             "ems_common_driver/ems_common/effects.c" "ems_common_driver/ems_drivers/ow.c"
                             "ems_common_driver/ems_common/cmd_parser.c" "ems_common_driver/ems_common/ems_time.c"
                             "ems_common_driver/ems_drivers/hv2201.c" "ems_common_driver/ems_drivers/led.c"
+                            "ems_common_driver/ems_drivers/lsm6ds3.c" "ems_common_driver/ems_drivers/hdc2080.c"
                             "ems_common_driver/ems_drivers/max5741.c"
                             "ems_common_driver/ems_drivers/uart.c"
                             "ems_common_driver/ems.c"
