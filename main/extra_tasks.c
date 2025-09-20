@@ -8,6 +8,7 @@
 #include "ems_setup.h"
 #include "ems_common_driver/user.h"
 #include "esp_app_desc.h"
+#include "ems_common_driver/esp32/esp32_id.h"
 
 static const char *TAG = "EXTRA_TASKS";
 
