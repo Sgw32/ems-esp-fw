@@ -1,7 +1,9 @@
 #include "hrm.h"
 #include "esp_log.h"
+#include "esp_err.h"
 #include "nvs_flash.h"
 #include "freertos/FreeRTOSConfig.h"
+#include <string.h>
 /* BLE */
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
@@ -13,6 +15,7 @@
 #include "gatt_svr.h"
 #include "ems_setup.h"
 
+#include "ems_common_driver/esp32/esp32_id.h"
 #include "max30100/max30100.h"
 
 static const char *tag = "HRM";
@@ -23,11 +26,15 @@ static bool notify_state;
 
 static uint16_t conn_handle;
 
-static const char *device_name = "ems_ble";
+#define HRM_BLE_DEVICE_NAME_MAX_LEN   (BLE_GAP_DEVNAME_MAX_LEN + 1)
+
+static char device_name[HRM_BLE_DEVICE_NAME_MAX_LEN] = "ems_ble";
 
 static int blehr_gap_event(struct ble_gap_event *event, void *arg);
 
 static uint8_t blehr_addr_type;
+
+static void hrm_init_device_name(void);
 
 /* Variable to simulate heart beats */
 static uint8_t heartrate = 90;
@@ -55,6 +62,70 @@ void print_addr(const void *addr)
     u8p = addr;
     MODLOG_DFLT(INFO, "%02x:%02x:%02x:%02x:%02x:%02x",
                 u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
+}
+
+static void hrm_init_device_name(void)
+{
+    char stored_name[HRM_BLE_DEVICE_NAME_MAX_LEN] = {0};
+
+    esp_err_t err = Esp32ReadBleName(stored_name, sizeof(stored_name));
+    bool have_name = (err == ESP_OK) && (stored_name[0] != '\0');
+
+    if (!have_name)
+    {
+        if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND)
+        {
+            ESP_LOGW(tag, "Failed to read BLE name from NVS: %s", esp_err_to_name(err));
+        }
+
+        uint32_t ffit_num = 0;
+        esp_err_t num_err = Esp32LoadFFitNumber(&ffit_num);
+        if (num_err != ESP_OK)
+        {
+            if (num_err != ESP_ERR_NVS_NOT_FOUND)
+            {
+                ESP_LOGW(tag, "Failed to load FFit number: %s", esp_err_to_name(num_err));
+            }
+
+            ffit_num = 0;
+            esp_err_t store_err = Esp32StoreFFitNumber(ffit_num);
+            if (store_err != ESP_OK)
+            {
+                ESP_LOGW(tag, "Failed to store default FFit number: %s", esp_err_to_name(store_err));
+            }
+        }
+
+        int written = snprintf(stored_name, sizeof(stored_name), "FFit%04lu", (unsigned long)ffit_num);
+        if (written < 0)
+        {
+            stored_name[0] = '\0';
+        }
+        else if ((size_t)written >= sizeof(stored_name))
+        {
+            stored_name[sizeof(stored_name) - 1] = '\0';
+        }
+
+        esp_err_t write_err = Esp32WriteBleName(stored_name);
+        if (write_err != ESP_OK)
+        {
+            ESP_LOGW(tag, "Failed to store BLE name '%s': %s", stored_name, esp_err_to_name(write_err));
+        }
+        else
+        {
+            ESP_LOGI(tag, "Stored default BLE name '%s' in NVS", stored_name);
+        }
+    }
+
+    if (stored_name[0] == '\0')
+    {
+        strncpy(stored_name, "FFit0000", sizeof(stored_name));
+        stored_name[sizeof(stored_name) - 1] = '\0';
+    }
+
+    strncpy(device_name, stored_name, sizeof(device_name));
+    device_name[sizeof(device_name) - 1] = '\0';
+
+    ESP_LOGI(tag, "Using BLE device name '%s'", device_name);
 }
 
 
@@ -352,6 +423,8 @@ void init_hrm(void)
         printf("Failed to create mutex\n");
         return;
     }
+
+    hrm_init_device_name();
     //Init sensor at I2C_NUM_0
     ret = max30100_init( &max30100, I2C_BUS_PORT,
                    MAX30100_DEFAULT_OPERATING_MODE,
