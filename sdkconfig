@@ -559,8 +559,11 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
-# Example Configuration
+# Application Configuration
 #
+CONFIG_APP_MAX30100_TEST=y
+CONFIG_APP_MAX30100_TEST_SAMPLE_PERIOD_MS=10
+# end of Application Configuration
 
 #
 # SSD1306 Configuration

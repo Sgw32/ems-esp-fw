@@ -55,16 +55,21 @@ void app_main(void)
         delay_ticks = 1;
     }
 
+    int counter = 0;
     while (true) {
         ret = max30100_update(&sensor, &reading);
         if (ret == ESP_OK) {
-            log_sensor_reading(&reading);
+            counter++;
+            if (counter >= 100) {  // 100 × 10 ms = 1 second
+                log_sensor_reading(&reading);
+                counter = 0;
+            }
         } else {
             ESP_LOGE(TAG, "Failed to read MAX30100 sensor: %s",
-                     esp_err_to_name(ret));
+                    esp_err_to_name(ret));
         }
 
-        vTaskDelay(delay_ticks);
+        vTaskDelay(delay_ticks); // delay_ticks = 10 ms
     }
 }
 

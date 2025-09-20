@@ -13,8 +13,8 @@ config APP_MAX30100_TEST
 config APP_MAX30100_TEST_SAMPLE_PERIOD_MS
     int "MAX30100 console update period (ms)"
     depends on APP_MAX30100_TEST
-    range 20 5000
-    default 200
+    range 10 5000
+    default 10
     help
         Delay between consecutive sensor reads when the MAX30100 test
         application is enabled. Lower values provide faster updates but may
