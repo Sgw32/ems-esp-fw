@@ -31,7 +31,7 @@
 #include "ems_common_driver/ems_drivers/max5741.h"
 #include "ems_common_driver/ems_drivers/lsm6ds3.h"
 #include "ems_common_driver/ems_drivers/hdc2080.h"
-#include "esp32/esp32_id.h"
+#include "ems_common_driver/esp32/esp32_id.h"
 #include "max5815.h"
 #include "max5815_sine.h"
 

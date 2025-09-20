@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
+#include "esp_err.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "host/ble_hs.h"
@@ -22,6 +24,7 @@
 #include "blehr_sens.h"
 #include "ems_setup.h"
 #include "ems_common_driver/ems_drivers/uart.h"
+#include "ems_common_driver/esp32/esp32_id.h"
 
 static const char *TAG = "GATT_SVR";
 static const char *manuf_name = "Future Fitness EMS";
@@ -33,7 +36,8 @@ static bool notify_state;
 
 static uint16_t conn_handle;
 
-static const char *device_name = "ems_ble";
+#define BLE_DEVICE_NAME_MAX_LEN 32
+static char device_name[BLE_DEVICE_NAME_MAX_LEN + 1] = "ems_ble";
 
 static int blehr_gap_event(struct ble_gap_event *event, void *arg);
 
@@ -613,6 +617,47 @@ static int gatt_svr_nus_tx_cb(uint16_t conn_handle, uint16_t attr_handle,
 //     return 0;
 // }
 
+static void gatt_init_device_name(void)
+{
+    char stored_name[BLE_DEVICE_NAME_MAX_LEN + 1] = {0};
+    esp_err_t err = Esp32ReadBleName(stored_name, sizeof(stored_name));
+    if (err == ESP_OK && stored_name[0] != '\0') {
+        snprintf(device_name, sizeof(device_name), "%s", stored_name);
+        ESP_LOGI(TAG, "BLE device name loaded from NVS: %s", device_name);
+        return;
+    }
+
+    if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW(TAG, "Failed to read BLE name from NVS: %s", esp_err_to_name(err));
+    }
+
+    uint32_t ffit_number = 0;
+    esp_err_t ffit_err = Esp32LoadFFitNumber(&ffit_number);
+    if (ffit_err == ESP_ERR_NVS_NOT_FOUND) {
+        ffit_number = 0;
+        esp_err_t store_err = Esp32StoreFFitNumber(ffit_number);
+        if (store_err != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to store default FFit number: %s", esp_err_to_name(store_err));
+        }
+    } else if (ffit_err != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to load FFit number: %s", esp_err_to_name(ffit_err));
+        ffit_number = 0;
+        esp_err_t store_err = Esp32StoreFFitNumber(ffit_number);
+        if (store_err != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to store fallback FFit number: %s", esp_err_to_name(store_err));
+        }
+    }
+
+    snprintf(device_name, sizeof(device_name), "FFit%03" PRIu32, ffit_number);
+
+    esp_err_t write_err = Esp32WriteBleName(device_name);
+    if (write_err != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to store BLE name to NVS: %s", esp_err_to_name(write_err));
+    }
+
+    ESP_LOGI(TAG, "BLE device name set to %s", device_name);
+}
+
 /*
  * Enables advertising with parameters:
  *     o General discoverable mode
@@ -909,6 +954,7 @@ void init_ems_ble(void)
         printf("Failed to create mutex\n");
         return;
     }
+    gatt_init_device_name();
     //Init sensor at I2C_NUM_0
     ret = max30100_init( &max30100, I2C_BUS_PORT,
                    MAX30100_DEFAULT_OPERATING_MODE,
