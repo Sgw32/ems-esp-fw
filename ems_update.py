@@ -90,7 +90,7 @@ async def send_ota(file_path):
         )
 
         # wait for the response
-        await asyncio.sleep(1)
+        await asyncio.sleep(10)
         if await queue.get() == "ack":
 
             # sequentially write all packets to OTA data

@@ -265,6 +265,9 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+    //Esp32StoreFFitNumber(123);
+    //Esp32WriteBleName("FFit-123");
+
     i2c_init();
     i2c_scan();
     Esp32IdInit();

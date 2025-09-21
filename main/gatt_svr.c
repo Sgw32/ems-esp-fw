@@ -582,11 +582,11 @@ static int gatt_svr_nus_rx_cb(uint16_t conn_handle, uint16_t attr_handle,
     uartBLEInjectRxBytes(data, len);
 
     // Echo back
-    struct os_mbuf *om = ble_hs_mbuf_from_flat(data, len);
-    if (om) {
-        ble_gattc_notify_custom(conn_handle, nus_tx_val_handle, om);
-        ESP_LOGI(TAG, "NUS TX: Echoed back %d bytes", len);
-    }
+    // struct os_mbuf *om = ble_hs_mbuf_from_flat(data, len);
+    // if (om) {
+    //     ble_gattc_notify_custom(conn_handle, nus_tx_val_handle, om);
+    //     //ESP_LOGI(TAG, "NUS TX: Echoed back %d bytes", len);
+    // }
 
     return 0;
 }
@@ -648,7 +648,7 @@ static void gatt_init_device_name(void)
         }
     }
 
-    snprintf(device_name, sizeof(device_name), "FFit%03" PRIu32, ffit_number);
+    snprintf(device_name, sizeof(device_name), "FFit-%03" PRIu32, ffit_number);
 
     esp_err_t write_err = Esp32WriteBleName(device_name);
     if (write_err != ESP_OK) {

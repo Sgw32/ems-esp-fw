@@ -72,6 +72,9 @@ static void handle_button_actions(void)
     }
 }
 
+static bool set_ble_name = false;
+static uint32_t new_ble_num = 0;
+
 void main_task(void *p)
 {
     TickType_t tickBlue = 0, tickConnect = 0, tickSerena = 0;
@@ -90,6 +93,50 @@ void main_task(void *p)
         esp_restart();
         }
 #endif
+
+        if (set_ble_name)
+        {
+            set_ble_name = false;
+            uint8_t       strNum[10];
+            ESP_LOGI(TAG, "setFFitNumber: %lu", new_ble_num);
+            snprintf((char *)strNum, sizeof(strNum), "FFit-%lu", (unsigned long)new_ble_num);
+
+            esp_err_t err = Esp32StoreFFitNumber(new_ble_num);
+            if(err != ESP_OK)
+            {
+                ESP_LOGE(TAG, "Failed to store FFit number: %s", esp_err_to_name(err));
+            }
+            else
+            {
+                ESP_LOGI(TAG, "FFit number: %s", strNum);
+            }
+
+            err = Esp32WriteBleName((const char *)strNum);
+            if(err != ESP_OK)
+            {
+                ESP_LOGE(TAG, "Failed to persist BLE name: %s", esp_err_to_name(err));
+            }
+            else
+            {
+                ESP_LOGI(TAG, "Esp32WriteBleName number: %s", strNum);
+            }
+
+            // #if defined(CONFIG_BT_ENABLED) && CONFIG_BT_ENABLED
+            // #if defined(CONFIG_BT_NIMBLE_ENABLED) && CONFIG_BT_NIMBLE_ENABLED
+            // int rc = ble_svc_gap_device_name_set((const char *)dev_strNum);
+            // if(rc != 0)
+            // {
+            //     ESP_LOGE(TAG_CMD_PARSER, "Failed to update GAP device name (rc=%d)", rc);
+            // }
+            // #elif defined(CONFIG_BT_BLE_ENABLED) && CONFIG_BT_BLE_ENABLED
+            // esp_err_t ble_err = esp_ble_gap_set_device_name((const char *)dev_strNum);
+            // if(ble_err != ESP_OK)
+            // {
+            //     ESP_LOGE(TAG_CMD_PARSER, "Failed to update BLE GAP name: %s", esp_err_to_name(ble_err));
+            // }
+            // #endif
+            // #endif
+        }
 
         if(buttonIsPush == true || btnPushMs > 0)
         {
@@ -576,8 +623,12 @@ void cmd_proc_task(void *p)
                     if(getInt32Value(&parserUint, SETNAME_PARAM_NUM) == CMD_OK)
                     {
                     sendAccepted((const uint8_t*)"");
-                    vTaskDelay(100);
-                    setFFitNumber((uint8_t)parserUint);
+                    new_ble_num = parserUint;
+                    set_ble_name = true;
+                    //vTaskDelay(100);
+                    //setFFitNumber((uint8_t)parserUint);
+
+                    
                     }
                     else
                     {
