@@ -12,4 +12,6 @@ void init_ems_ble(void);
 uint16_t get_heart_rate();
 uint8_t get_hrm_connected();
 
+extern uint16_t nus_tx_val_handle;
+
 #endif

@@ -79,7 +79,7 @@ uint8_t ems_get_power_en(void)
 #define EMS_UART_CHAR_UUID           0xFFE1
 #define EMS_UART_MAX_DATA_LEN        256
 
-static uint16_t ems_uart_val_handle;
+uint16_t nus_tx_val_handle;
 static uint8_t ems_uart_last_value[EMS_UART_MAX_DATA_LEN];
 static uint16_t ems_uart_last_value_len;
 
@@ -106,6 +106,13 @@ static int gatt_svr_chr_ota_data_cb(uint16_t conn_handle, uint16_t attr_handle,
 
 static int gatt_svr_uart_cb(uint16_t conn_handle, uint16_t attr_handle,
                             struct ble_gatt_access_ctxt *ctxt, void *arg);
+
+static int gatt_svr_nus_tx_cb(uint16_t conn_handle, uint16_t attr_handle,
+                              struct ble_gatt_access_ctxt *ctxt, void *arg);
+
+static int gatt_svr_nus_rx_cb(uint16_t conn_handle, uint16_t attr_handle,
+                              struct ble_gatt_access_ctxt *ctxt, void *arg);
+
 
 /**
  * Utility function to log an array of bytes.
@@ -144,7 +151,35 @@ static const ble_uuid128_t gatt_svr_chr_ota_data_uuid =
     BLE_UUID128_INIT(0xb0, 0xa5, 0xf8, 0x45, 0x8d, 0xca, 0x89, 0x9b, 0xd8, 0x4c,
                      0x40, 0x1f, 0x88, 0x88, 0x40, 0x23);
 
+static const ble_uuid128_t nus_service_uuid =
+    BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0,
+                     0x93, 0xf3, 0xa3, 0xb5, 0x01, 0x00, 0x40, 0x6e);
+
+static const ble_uuid128_t nus_rx_uuid =
+    BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0,
+                     0x93, 0xf3, 0xa3, 0xb5, 0x02, 0x00, 0x40, 0x6e);
+
+static const ble_uuid128_t nus_tx_uuid =
+    BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0,
+                     0x93, 0xf3, 0xa3, 0xb5, 0x03, 0x00, 0x40, 0x6e);
+
 static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
+    // {
+    //     .type = BLE_GATT_SVC_TYPE_PRIMARY,
+    //     .uuid = BLE_UUID16_DECLARE(EMS_UART_SERVICE_UUID),
+    //     .characteristics = (struct ble_gatt_chr_def[]) {
+    //         {
+    //             .uuid = BLE_UUID16_DECLARE(EMS_UART_CHAR_UUID),
+    //             .access_cb = gatt_svr_uart_cb,
+    //             .flags = BLE_GATT_CHR_F_READ |
+    //                      BLE_GATT_CHR_F_WRITE |
+    //                      BLE_GATT_CHR_F_WRITE_NO_RSP |
+    //                      BLE_GATT_CHR_F_NOTIFY,
+    //             .val_handle = &nus_tx_val_handle,
+    //         },
+    //         { 0 }
+    //     }
+    // },
     {
         /* Service: Heart-rate */
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
@@ -166,7 +201,6 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
             },
         }
     },
-
     {
         /* Service: Device Information */
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
@@ -205,16 +239,18 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
     },
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = BLE_UUID16_DECLARE(EMS_UART_SERVICE_UUID),
+        .uuid = &nus_service_uuid.u,
         .characteristics = (struct ble_gatt_chr_def[]) {
             {
-                .uuid = BLE_UUID16_DECLARE(EMS_UART_CHAR_UUID),
-                .access_cb = gatt_svr_uart_cb,
-                .flags = BLE_GATT_CHR_F_READ |
-                         BLE_GATT_CHR_F_WRITE |
-                         BLE_GATT_CHR_F_WRITE_NO_RSP |
-                         BLE_GATT_CHR_F_NOTIFY,
-                .val_handle = &ems_uart_val_handle,
+                .uuid = &nus_rx_uuid.u,
+                .access_cb = gatt_svr_nus_rx_cb,
+                .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_NO_RSP,
+            },
+            {
+                .uuid = &nus_tx_uuid.u,
+                .access_cb = gatt_svr_nus_tx_cb,
+                .flags = BLE_GATT_CHR_F_NOTIFY,
+                .val_handle = &nus_tx_val_handle,
             },
             { 0 }
         }
@@ -592,7 +628,7 @@ static int gatt_svr_uart_cb(uint16_t conn_handle, uint16_t attr_handle,
         if (len > 0) {
             struct os_mbuf *om = ble_hs_mbuf_from_flat(data, len);
             if (om) {
-                ble_gattc_notify_custom(conn_handle, ems_uart_val_handle, om);
+                //ble_gattc_notify_custom(conn_handle, nus_tx_val_handle, om);
                 ESP_LOGI(TAG, "BLE UART TX: Notified %d bytes", len);
             }
         }
@@ -606,6 +642,44 @@ static int gatt_svr_uart_cb(uint16_t conn_handle, uint16_t attr_handle,
 
     return BLE_ATT_ERR_UNLIKELY;
 }
+
+static int gatt_svr_nus_rx_cb(uint16_t conn_handle, uint16_t attr_handle,
+                              struct ble_gatt_access_ctxt *ctxt, void *arg)
+{
+    uint8_t data[256];
+    uint16_t len = OS_MBUF_PKTLEN(ctxt->om);
+
+    if (len > sizeof(data)) {
+        len = sizeof(data);
+    }
+
+    int rc = ble_hs_mbuf_to_flat(ctxt->om, data, len, NULL);
+    if (rc != 0) {
+        return BLE_ATT_ERR_UNLIKELY;
+    }
+
+    ESP_LOGI(TAG, "NUS RX: Received %d bytes", len);
+    ESP_LOG_BUFFER_HEXDUMP(TAG, data, len, ESP_LOG_INFO);
+    // Inject received BLE data into UART RX buffer for cmd_parser
+    uartBLEInjectRxBytes(data, len);
+
+    // Echo back
+    // struct os_mbuf *om = ble_hs_mbuf_from_flat(data, len);
+    // if (om) {
+    //     ble_gattc_notify_custom(conn_handle, nus_tx_val_handle, om);
+    //     //ESP_LOGI(TAG, "NUS TX: Echoed back %d bytes", len);
+    // }
+
+    return 0;
+}
+
+static int gatt_svr_nus_tx_cb(uint16_t conn_handle, uint16_t attr_handle,
+                              struct ble_gatt_access_ctxt *ctxt, void *arg)
+{
+    // This characteristic is notify-only, nothing to do here
+    return BLE_ATT_ERR_READ_NOT_PERMITTED;
+}   
+
 
 // static int ble_gap_event_cb(struct ble_gap_event *event, void *arg) {
 //     switch (event->type) {
