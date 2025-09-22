@@ -12,7 +12,7 @@
 static const char *TAG = "EXTRA_TASKS";
 
 #define MAIN_TASK_DELAY_MS 25
-#define CMD_TASK_DELAY_MS  50
+#define CMD_TASK_DELAY_MS  10
 
 static uint32_t pingCnt = 0;
 extern const struct    MuxSeries       muxSeries;
@@ -686,7 +686,7 @@ void cmd_proc_task(void *p)
 
                     
                 // возвращаем mode  
-                case PARSE_GET_MODE:
+                case PARSE_GET_MODE:   
                     sendCmdAndParam((const uint8_t*)"mode", (const uint8_t*)"normal", ACCEPTED);
                     break;
                     
@@ -1066,17 +1066,17 @@ void cmd_proc_task(void *p)
             {
                 for(uint8_t owidx = 0; owidx <3; owidx++)
                 {
-                if(owReset() == OW_STATE_PRESENT)
-                {
-                    owSetPinOpenDrain();
-                    owCmdReadRom();
-                    vTaskDelay(25);
-                    owSetPinPushPull();
-                    vTaskDelay(25);
-                    costumeIds[owidx] = owGetRom();
+                    if(owReset() == OW_STATE_PRESENT)
+                    {
+                        // Implement and uncomment
+                        // owSetPinOpenDrain();
+                        // owCmdReadRom();
+                        // vTaskDelay(25);
+                        // owSetPinPushPull();
+                        // vTaskDelay(25);
+                        costumeIds[owidx] = owGetRom();
+                    }
                 }
-                }
-                
                 if(costumeIds[0] == costumeIds[1] && costumeIds[1] == costumeIds[2])
                 {
                 costumeId = costumeIds[0];

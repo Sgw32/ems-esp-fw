@@ -113,7 +113,6 @@ static int gatt_svr_nus_tx_cb(uint16_t conn_handle, uint16_t attr_handle,
 static int gatt_svr_nus_rx_cb(uint16_t conn_handle, uint16_t attr_handle,
                               struct ble_gatt_access_ctxt *ctxt, void *arg);
 
-
 /**
  * Utility function to log an array of bytes.
  */
@@ -164,22 +163,22 @@ static const ble_uuid128_t nus_tx_uuid =
                      0x93, 0xf3, 0xa3, 0xb5, 0x03, 0x00, 0x40, 0x6e);
 
 static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
-    // {
-    //     .type = BLE_GATT_SVC_TYPE_PRIMARY,
-    //     .uuid = BLE_UUID16_DECLARE(EMS_UART_SERVICE_UUID),
-    //     .characteristics = (struct ble_gatt_chr_def[]) {
-    //         {
-    //             .uuid = BLE_UUID16_DECLARE(EMS_UART_CHAR_UUID),
-    //             .access_cb = gatt_svr_uart_cb,
-    //             .flags = BLE_GATT_CHR_F_READ |
-    //                      BLE_GATT_CHR_F_WRITE |
-    //                      BLE_GATT_CHR_F_WRITE_NO_RSP |
-    //                      BLE_GATT_CHR_F_NOTIFY,
-    //             .val_handle = &nus_tx_val_handle,
-    //         },
-    //         { 0 }
-    //     }
-    // },
+    {
+        .type = BLE_GATT_SVC_TYPE_PRIMARY,
+        .uuid = BLE_UUID16_DECLARE(EMS_UART_SERVICE_UUID),
+        .characteristics = (struct ble_gatt_chr_def[]) {
+            {
+                .uuid = BLE_UUID16_DECLARE(EMS_UART_CHAR_UUID),
+                .access_cb = gatt_svr_nus_rx_cb,
+                .flags = BLE_GATT_CHR_F_READ |
+                         BLE_GATT_CHR_F_WRITE |
+                         BLE_GATT_CHR_F_WRITE_NO_RSP |
+                         BLE_GATT_CHR_F_NOTIFY,
+                .val_handle = &nus_tx_val_handle,
+            },
+            { 0 }
+        }
+    },
     {
         /* Service: Heart-rate */
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
@@ -237,24 +236,24 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
             },
         }
     },
-    {
-        .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = &nus_service_uuid.u,
-        .characteristics = (struct ble_gatt_chr_def[]) {
-            {
-                .uuid = &nus_rx_uuid.u,
-                .access_cb = gatt_svr_nus_rx_cb,
-                .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_NO_RSP,
-            },
-            {
-                .uuid = &nus_tx_uuid.u,
-                .access_cb = gatt_svr_nus_tx_cb,
-                .flags = BLE_GATT_CHR_F_NOTIFY,
-                .val_handle = &nus_tx_val_handle,
-            },
-            { 0 }
-        }
-    },
+    // {
+    //     .type = BLE_GATT_SVC_TYPE_PRIMARY,
+    //     .uuid = &nus_service_uuid.u,
+    //     .characteristics = (struct ble_gatt_chr_def[]) {
+    //         {
+    //             .uuid = &nus_rx_uuid.u,
+    //             .access_cb = gatt_svr_nus_rx_cb,
+    //             .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_NO_RSP,
+    //         },
+    //         {
+    //             .uuid = &nus_tx_uuid.u,
+    //             .access_cb = gatt_svr_nus_tx_cb,
+    //             .flags = BLE_GATT_CHR_F_NOTIFY,
+    //             .val_handle = &nus_tx_val_handle,
+    //         },
+    //         { 0 }
+    //     }
+    // },
     {
         // service: OTA Service
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
@@ -873,6 +872,7 @@ static void blehr_tx_hrate(TimerHandle_t ev)
 
 static int blehr_gap_event(struct ble_gap_event *event, void *arg)
 {
+    int rc = 0;
     switch (event->type) {
     case BLE_GAP_EVENT_CONNECT:
         /* A new connection was established or a connection attempt failed */
@@ -881,7 +881,7 @@ static int blehr_gap_event(struct ble_gap_event *event, void *arg)
                     event->connect.status);
         if (event->connect.status == 0) {
             ESP_LOGI(TAG, "BLE connected, requesting MTU exchange...");
-            int rc = ble_gattc_exchange_mtu(event->connect.conn_handle, NULL, NULL);
+            // int rc = ble_gattc_exchange_mtu(event->connect.conn_handle, NULL, NULL);
             uartBLESetConnHandle(event->connect.conn_handle);
             if (rc != 0) {
                 ESP_LOGW(TAG, "MTU exchange request failed: %d", rc);
