@@ -265,9 +265,6 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    //Esp32StoreFFitNumber(123);
-    //Esp32WriteBleName("FFit-123");
-
     i2c_init();
     i2c_scan();
     Esp32IdInit();
@@ -290,7 +287,11 @@ void app_main(void)
     setup_ui();
 
     ESP_LOGI(TAG, "Initialize EMS common driver");
-    ems_timer_init();
+    
+    //ems_timer_init();
+    
+    //Esp32StoreFFitNumber(126);
+    //Esp32WriteBleName("FFit-126");
 
     struct MuxConf muxConf;
     //muxConf.buscfg = &buscfg;
@@ -305,6 +306,9 @@ void app_main(void)
     spi_bus_add_device(HV_SPI_HOST, &max5741_devcfg, &max5741_dh);
     MAX5741_Init(&p_dac_dev, &max5741_dh);
     pulseSetDACDevice(&p_dac_dev);
+
+    
+
 
     // #define PULSE_DEPTH_MIN_US              20
     // #define PULSE_DEPTH_MAX_US              250
@@ -351,6 +355,8 @@ void app_main(void)
     xTaskCreatePinnedToCore(cmd_proc_task, "cmd_proc_task", 4096, NULL, 5, NULL, 0);
 
     while (1) {
+
+
         vTaskDelay(pdMS_TO_TICKS(100)); // Adjust delay to control update rate
     }
 }

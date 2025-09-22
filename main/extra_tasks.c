@@ -75,6 +75,41 @@ static void handle_button_actions(void)
 static bool set_ble_name = false;
 static uint32_t new_ble_num = 0;
 
+/**
+ * @brief Persist the new FFit number while temporarily boosting our priority.
+ *
+ * When the command processor writes to flash, concurrent activity from other
+ * tasks can interfere with the transaction.  Rather than stopping the
+ * scheduler—which prevents the logging that the NVS routines rely
+ * on—temporarily raise the priority of the current task.  This keeps other
+ * tasks from running for the short duration of the flash update while still
+ * allowing the underlying drivers to use FreeRTOS primitives safely.
+ */
+static void setFFitNumberWithPriorityBoost(uint8_t new_number)
+{
+    const UBaseType_t elevated_priority = configMAX_PRIORITIES - 1;
+    TaskHandle_t const current_task = xTaskGetCurrentTaskHandle();
+    const UBaseType_t original_priority = uxTaskPriorityGet(current_task);
+    bool priority_changed = false;
+
+    if (original_priority < elevated_priority) {
+        ESP_LOGD(TAG, "Raising priority for FFit number update (%u -> %u)",
+                 (unsigned)original_priority, (unsigned)elevated_priority);
+        vTaskPrioritySet(current_task, elevated_priority);
+        priority_changed = true;
+    }
+
+    setFFitNumber(new_number);
+
+    if (priority_changed) {
+        vTaskPrioritySet(current_task, original_priority);
+        ESP_LOGD(TAG, "Restored priority after FFit number update (%u)",
+                 (unsigned)original_priority);
+    }
+}
+
+
+
 void main_task(void *p)
 {
     TickType_t tickBlue = 0, tickConnect = 0, tickSerena = 0;
@@ -623,12 +658,12 @@ void cmd_proc_task(void *p)
                     if(getInt32Value(&parserUint, SETNAME_PARAM_NUM) == CMD_OK)
                     {
                     sendAccepted((const uint8_t*)"");
-                    new_ble_num = parserUint;
-                    set_ble_name = true;
+                    //new_ble_num = parserUint;
+                    //set_ble_name = true;
                     //vTaskDelay(100);
-                    //setFFitNumber((uint8_t)parserUint);
-
-                    
+                    //ems_timer_suspend();
+                    setFFitNumber((uint8_t)parserUint);
+                    //ems_timer_resume();
                     }
                     else
                     {
