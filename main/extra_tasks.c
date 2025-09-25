@@ -12,7 +12,7 @@
 static const char *TAG = "EXTRA_TASKS";
 
 #define MAIN_TASK_DELAY_MS 25
-#define CMD_TASK_DELAY_MS  10
+#define CMD_TASK_DELAY_MS  50
 
 static uint32_t pingCnt = 0;
 extern const struct    MuxSeries       muxSeries;
@@ -655,6 +655,7 @@ void cmd_proc_task(void *p)
                     
                 // задаем имя модулю
                 case PARSE_SET_NAME:
+                case PARSE_SET_NUMBER:
                     if(getInt32Value(&parserUint, SETNAME_PARAM_NUM) == CMD_OK)
                     {
                     sendAccepted((const uint8_t*)"");
@@ -662,7 +663,7 @@ void cmd_proc_task(void *p)
                     //set_ble_name = true;
                     //vTaskDelay(100);
                     //ems_timer_suspend();
-                    setFFitNumber((uint8_t)parserUint);
+                    setFFitNumber(parserUint);
                     //ems_timer_resume();
                     }
                     else

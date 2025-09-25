@@ -31,6 +31,7 @@
 #include "ems_common_driver/ems_drivers/max5741.h"
 #include "ems_common_driver/ems_drivers/lsm6ds3.h"
 #include "ems_common_driver/ems_drivers/hdc2080.h"
+#include "ems_common_driver/ems_drivers/uart.h"
 #include "ems_common_driver/esp32/esp32_id.h"
 #include "max5815.h"
 #include "max5815_sine.h"
@@ -267,6 +268,7 @@ void app_main(void)
 
     i2c_init();
     i2c_scan();
+    uartInit();
     Esp32IdInit();
     ESP_LOGI(TAG, "Device ID: %s", Esp32Id());
     ESP_LOGI(TAG, "I2C initialized");
@@ -288,7 +290,7 @@ void app_main(void)
 
     ESP_LOGI(TAG, "Initialize EMS common driver");
     
-    //ems_timer_init();
+    ems_timer_init();
     
     //Esp32StoreFFitNumber(126);
     //Esp32WriteBleName("FFit-126");
