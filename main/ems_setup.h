@@ -151,4 +151,9 @@ typedef enum {
 #define HV_SPI_HOST SPI2_HOST
 #endif
 
+//This is for 12 channel board, installed before the new mux HV2801K6-G
+// So this is for 12 channel HV2201 board with old MUX PCB
+// If uncommented, the code will use 32 channel configuration for new MUX PCB with HV2801K6-G
+// #define OLD_MUX_PCB_INSTALLED
+
 #endif /* EMS_SETUP */
