@@ -338,6 +338,19 @@ void app_main(void)
     emsCfgSet(CFG_RELAX_RISE, 0);
     emsCfgSet(CFG_RELAX_FAIL, 0);
     emsCfgSet(CFG_RELAX_PULSE_PRESENT, 1);
+
+    emsPercentSetX((MuxChannelTypeDef)0, 2);
+    emsPercentSetX((MuxChannelTypeDef)1, 5);
+    emsPercentSetX((MuxChannelTypeDef)2, 10);
+    emsPercentSetX((MuxChannelTypeDef)3, 15);
+    emsPercentSetX((MuxChannelTypeDef)4, 20);
+    emsPercentSetX((MuxChannelTypeDef)5, 25);
+    emsPercentSetX((MuxChannelTypeDef)6, 30);
+    emsPercentSetX((MuxChannelTypeDef)7, 40);
+    emsPercentSetX((MuxChannelTypeDef)8, 50);
+    emsPercentSetX((MuxChannelTypeDef)9, 70);
+    emsPercentSetX((MuxChannelTypeDef)10, 85);
+    emsPercentSetX((MuxChannelTypeDef)11, 100);
     
     ESP_LOGI(TAG, "Start EMS common driver");
     emsStart();
