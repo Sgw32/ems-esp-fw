@@ -353,7 +353,7 @@ void app_main(void)
     emsPercentSetX((MuxChannelTypeDef)11, 100);
     
     ESP_LOGI(TAG, "Start EMS common driver");
-    emsStart();
+    //emsStart();
 
     xTaskCreatePinnedToCore(
         device_sm_task,          // Task function

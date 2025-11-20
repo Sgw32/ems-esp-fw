@@ -658,11 +658,8 @@ void cmd_proc_task(void *p)
                 case PARSE_SET_NUMBER:
                     if(getInt32Value(&parserUint, SETNAME_PARAM_NUM) == CMD_OK)
                     {
+                    emsStop();
                     sendAccepted((const uint8_t*)"");
-                    //new_ble_num = parserUint;
-                    //set_ble_name = true;
-                    //vTaskDelay(100);
-                    //ems_timer_suspend();
                     setFFitNumber(parserUint);
                     //ems_timer_resume();
                     }

@@ -13,7 +13,7 @@ idf_component_register(SRCS "ems_ble_ota.c" "device_sm.c" "gatt_svr.c"      "i2c
                             "ems_common_driver/ems_drivers/max5741.c"
                             "ems_common_driver/ems_drivers/uart.c"
                             "ems_common_driver/ems.c"
-                       PRIV_REQUIRES esp32-max30100 max5815 ssd1306 bt nvs_flash app_update bootloader_support
+                       PRIV_REQUIRES esp32-max30100 max5815 ssd1306 bt nvs_flash esp_adc app_update bootloader_support
                        INCLUDE_DIRS "." "ems_common_driver/utils" "ems_common_driver/ems_common" "ems_common_driver/" "ems_common_driver/esp32" "ems_common_driver/ems_drivers"
                        EMBED_TXTFILES ${project_dir}/rsa_key/private.pem)
 
