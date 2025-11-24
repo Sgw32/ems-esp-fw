@@ -2,8 +2,12 @@
 #include <math.h>
 #include "ems_setup.h"
 #include <stdio.h>
+#include <string.h>
+#include <inttypes.h>
+#include "esp_err.h"
 #include "ssd1306.h"
 #include "font8x8_basic.h"
+#include "ems_common_driver/esp32/esp32_id.h"
 
 static const char *TAG = "SSD1306_DISPLAY";
 #define CUBE_SIZE 10  // 10x10x10 pixels
@@ -14,6 +18,26 @@ static const char *TAG = "SSD1306_DISPLAY";
 static SSD1306_t dev;
 
 static char h_rate_str[17] = "";
+static char ble_name_str[17] = "";
+
+static void display_boot_text(void)
+{
+    memset(ble_name_str, ' ', sizeof(ble_name_str));
+    ble_name_str[sizeof(ble_name_str) - 1] = '\0';
+
+    esp_err_t err = Esp32ReadBleName(ble_name_str, sizeof(ble_name_str));
+    if (err != ESP_OK || ble_name_str[0] == '\0') {
+        uint32_t ffit_number = 0;
+        if (Esp32LoadFFitNumber(&ffit_number) != ESP_OK) {
+            ffit_number = 0;
+        }
+
+        snprintf(ble_name_str, sizeof(ble_name_str), "FFit-%03" PRIu32, ffit_number);
+    }
+
+    ssd1306_display_text(&dev, 1, "     EMS BOX    ", 17, false);
+    ssd1306_display_text(&dev, 2, ble_name_str, 17, false);
+}
 
 float r, x1, ya, z1, x2, y2, z2, x3, y3, z3;               //                                      //
 int f[8][3];                                                // Draw box
@@ -90,14 +114,15 @@ void setup_ui()
 	ESP_LOGI(TAG, "CONFIG_SCL_GPIO=%d",SSD1306_PIN_NUM_SCL);
 	ssd1306_i2c_master_init(&dev, SSD1306_PIN_NUM_SDA, SSD1306_PIN_NUM_SCL, -1);
 
-	ESP_LOGI(TAG, "Panel is 128x64");
-	ssd1306_init(&dev, 128, 64);
+        ESP_LOGI(TAG, "Panel is 128x64");
+        ssd1306_init(&dev, 128, 64);
     if (dev.init_error) {
         ESP_LOGE(TAG, "SSD1306 init error");
         return;
     }
-	ssd1306_clear_screen(&dev, false);
-	ssd1306_contrast(&dev, 0xff);
+        ssd1306_clear_screen(&dev, false);
+        ssd1306_contrast(&dev, 0xff);
+        display_boot_text();
 }
 
 static inline void update_boot()
