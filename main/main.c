@@ -351,7 +351,9 @@ void app_main(void)
     emsPercentSetX((MuxChannelTypeDef)9, 70);
     emsPercentSetX((MuxChannelTypeDef)10, 85);
     emsPercentSetX((MuxChannelTypeDef)11, 100);
-    
+
+    ssd1306_display_params_and_state("INIT");
+
     ESP_LOGI(TAG, "Start EMS common driver");
     //emsStart();
 

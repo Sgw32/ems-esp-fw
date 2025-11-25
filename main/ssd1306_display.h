@@ -33,4 +33,16 @@ void setup_ui(void);
  */
 void update_ui(device_state_t state, uint16_t heart_rate, uint8_t hrm_active);
 
+/**
+ * @brief Draw current EMS pulse parameters and a human readable state label.
+ *
+ * The parameters mirror those configured in @c main.c before invoking
+ * @c emsStart(). The function fetches the current values from the EMS
+ * configuration storage and renders them along with the provided state text.
+ *
+ * @param state_text Null-terminated label describing the EMS state
+ *                   (e.g., "START", "PAUSE", "STOP").
+ */
+void ssd1306_display_params_and_state(const char *state_text);
+
 #endif /* SSD1306_DISPLAY */
