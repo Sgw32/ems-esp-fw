@@ -3,10 +3,13 @@
 #include "ems_setup.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include "esp_err.h"
 #include "ssd1306.h"
 #include "font8x8_basic.h"
+#include "ems_common_driver/ems_common/ems_config.h"
 #include "ems_common_driver/esp32/esp32_id.h"
 
 static const char *TAG = "SSD1306_DISPLAY";
@@ -19,6 +22,26 @@ static SSD1306_t dev;
 
 static char h_rate_str[17] = "";
 static char ble_name_str[17] = "";
+
+static uint32_t get_cfg_value(int cfg_key)
+{
+    uint32_t value = 0;
+    if (emsCfgGet(cfg_key, &value) != CFG_GET_OK) {
+        ESP_LOGW(TAG, "Failed to read cfg %d", cfg_key);
+    }
+    return value;
+}
+
+static void display_line(int page, const char *fmt, ...)
+{
+    char line[17];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(line, sizeof(line), fmt, args);
+    va_end(args);
+    line[sizeof(line) - 1] = '\0';
+    ssd1306_display_text(&dev, page, line, strlen(line), false);
+}
 
 static void display_boot_text(void)
 {
@@ -37,6 +60,41 @@ static void display_boot_text(void)
 
     ssd1306_display_text(&dev, 1, "     EMS BOX    ", 17, false);
     ssd1306_display_text(&dev, 2, ble_name_str, 17, false);
+}
+
+void ssd1306_display_params_and_state(const char *state_text)
+{
+    if (dev.init_error) {
+        return;
+    }
+
+    const uint32_t stimul_pulse_us = get_cfg_value(CFG_STIMUL_PULSE);
+    const uint32_t stimul_freq_hz = get_cfg_value(CFG_STIMUL_FREQ);
+    const uint32_t stimul_time_s = get_cfg_value(CFG_STIMUL_TIME_MS) / 1000;
+    const uint32_t stimul_rise_ms = get_cfg_value(CFG_STIMUL_RISE);
+    const uint32_t stimul_fail_ms = get_cfg_value(CFG_STIMUL_FAIL);
+
+    const uint32_t relax_pulse_us = get_cfg_value(CFG_RELAX_PULSE);
+    const uint32_t relax_freq_hz = get_cfg_value(CFG_RELAX_FREQ);
+    const uint32_t relax_time_s = get_cfg_value(CFG_RELAX_TIME_MS) / 1000;
+    const uint32_t relax_rise_ms = get_cfg_value(CFG_RELAX_RISE);
+    const uint32_t relax_fail_ms = get_cfg_value(CFG_RELAX_FAIL);
+    const bool relax_pulse_present = get_cfg_value(CFG_RELAX_PULSE_PRESENT) != 0;
+
+    ssd1306_clear_screen(&dev, false);
+
+    display_line(1, "State:%-10.10s", state_text ? state_text : "");
+    display_line(2, "S:P%03lus F%02luHz", (unsigned long)stimul_pulse_us,
+                 (unsigned long)stimul_freq_hz);
+    display_line(3, "S:T%03lus R%02lu/%02lu", (unsigned long)stimul_time_s,
+                 (unsigned long)stimul_rise_ms, (unsigned long)stimul_fail_ms);
+    display_line(4, "R:P%03lus F%02luHz", (unsigned long)relax_pulse_us,
+                 (unsigned long)relax_freq_hz);
+    display_line(5, "R:T%03lus R%02lu/%02lu", (unsigned long)relax_time_s,
+                 (unsigned long)relax_rise_ms, (unsigned long)relax_fail_ms);
+    display_line(6, "RelaxPulse:%s", relax_pulse_present ? "On" : "Off");
+
+    ssd1306_show_buffer(&dev);
 }
 
 float r, x1, ya, z1, x2, y2, z2, x3, y3, z3;               //                                      //

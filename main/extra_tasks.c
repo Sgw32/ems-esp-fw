@@ -5,6 +5,7 @@
 #include "esp_system.h"
 #include "pwr_button.h"
 #include "device_sm.h"
+#include "ssd1306_display.h"
 #include "ems_setup.h"
 #include "ems_common_driver/user.h"
 #include "esp_app_desc.h"
@@ -54,9 +55,26 @@ static uint32_t                startTime = 0;
 
 static uint32_t                costumeId = 0;
 static uint32_t                costumeIds[16];
-static uint8_t                 costumeIdText[24]; 
+static uint8_t                 costumeIdText[24];
 
 static uint32_t buildNumber = 0;
+
+static const char *ems_state_text(SmEmsTypeDef state)
+{
+    switch (state) {
+    case SM_EMS_START:
+        return "START";
+    case SM_EMS_PAUSE_END:
+        return "PAUSE";
+    default:
+        return "STOP";
+    }
+}
+
+static inline void display_params_with_state(void)
+{
+    ssd1306_display_params_and_state(ems_state_text(smEms));
+}
 
 static void handle_button_actions(void)
 {
@@ -348,10 +366,13 @@ void cmd_proc_task(void *p)
                     {
                         sendCmdAndParam((const uint8_t*)"emsState",   (const uint8_t*)"stop",       ACCEPTED);
                     }
+                    if (pingTick == 0) {
+                        display_params_with_state();
+                    }
                     // проверяем первый ли это пинг, если первый то отправляем дополнительную информацию
                     if(pingTick == 0)
                     {
-                        // при коннекте обнуляем время простоя 
+                        // при коннекте обнуляем время простоя
                         delayTick = xTaskGetTickCount();
                         // первый пинг
                         pingTick = xTaskGetTickCount();
@@ -518,6 +539,8 @@ void cmd_proc_task(void *p)
                         blinkOn = false;
                         }
 
+                        display_params_with_state();
+
                         break;
                     }
                     
@@ -527,8 +550,9 @@ void cmd_proc_task(void *p)
                         sendCmdAndParam((const uint8_t*)"info", str, ACCEPTED_NO);
                         isAfterStart = false;
                         sendAccepted((const uint8_t*)"");
+                        display_params_with_state();
                     break;
-                    
+
                     case CMD_EMS_PAUSE:
                         emsPause();
                         sprintf((char *)str, "batProc %u", batProc);
@@ -550,7 +574,7 @@ void cmd_proc_task(void *p)
                                 emsPercentCfg[0].channelPercent[10], \
                                 emsPercentCfg[0].channelPercent[11]);
                         sendCmdAndParam((const uint8_t*)"info", str, ACCEPTED_NO);
-                        
+
                         sprintf((char *)str, "Electrod2 %u %u %u %u %u %u %u %u %u %u %u %u", \
                                 emsPercentCfg[1].channelPercent[0], \
                                 emsPercentCfg[1].channelPercent[1], \
@@ -565,6 +589,7 @@ void cmd_proc_task(void *p)
                                 emsPercentCfg[1].channelPercent[10], \
                                 emsPercentCfg[1].channelPercent[11]);
                         sendCmdAndParam((const uint8_t*)"info", str, ACCEPTED_NO);
+                        display_params_with_state();
                     break;
                     
                     case CMD_EMS_ERROR:
